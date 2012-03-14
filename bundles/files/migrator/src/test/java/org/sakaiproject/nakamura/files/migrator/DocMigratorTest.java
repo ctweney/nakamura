@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -139,14 +140,28 @@ public class DocMigratorTest {
     LiteJsonImporter jsonImporter = new LiteJsonImporter();
     jsonImporter.internalImportContent(contentManager, doc, DOC_PATH, true, 
         accessControlManager);
+
+    // pre-migration check
     Content docContent = contentManager.get(DOC_PATH);
     assertTrue(docMigrator.fileContentNeedsMigration(docContent));
+    assertNotNull(docContent.getProperty("structure0"));
+    JSONObject structure0 = new JSONObject(docContent.getProperty("structure0").toString());
+    assertNotNull(structure0);
+
+    // do migration
     docMigrator.migrateFileContent(docContent);
-    docContent = contentManager.get(DOC_PATH);
+
+    // post-migration checks
+
+    Content docContentAfterMigration = contentManager.get(DOC_PATH);
 
     Content subpage = contentManager.get(DOC_PATH + "/id2545619");
     assertTrue(docMigrator.isPageNode(subpage, contentManager));
-    assertFalse(docMigrator.isPageNode(docContent, contentManager));
+    assertFalse(docMigrator.isPageNode(docContentAfterMigration, contentManager));
+
+    JSONObject structure0AfterMigration = new JSONObject(docContentAfterMigration.getProperty("structure0")
+        .toString());
+    assertEquals(structure0.toString(), structure0AfterMigration.toString());
 
   }
 }
