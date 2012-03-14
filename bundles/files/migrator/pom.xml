@@ -36,6 +36,7 @@
           <instructions>
             <Bundle-Category>sakai-nakamura</Bundle-Category>
             <Embed-Dependency>jsoup</Embed-Dependency>
+            <Export-Package> org.sakaiproject.nakamura.files.migrator </Export-Package>
           </instructions>
         </configuration>
       </plugin>

@@ -18,6 +18,7 @@
 package org.sakaiproject.nakamura.files.migrator;
 
 import com.google.common.collect.ImmutableMap;
+import junit.framework.Assert;
 import org.apache.sling.commons.json.JSONArray;
 import org.apache.sling.commons.json.JSONObject;
 import org.junit.Before;
@@ -33,9 +34,6 @@ import org.sakaiproject.nakamura.api.resource.lite.LiteJsonImporter;
 import org.sakaiproject.nakamura.lite.BaseMemoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -127,5 +125,28 @@ public class DocMigratorTest {
     JSONObject docStructure = new JSONObject(MISSING_PAGE_ELEMENT);
     JSONObject docStructureZero = new JSONObject(MISSING_PAGE_ELEMENT_STRUCTURE0);
     JSONObject newStructure = docMigrator.createNewPageStructure(docStructureZero, docStructure);
+  }
+
+  @Test
+  public void isPageNode() throws Exception {
+    final String DOC_PATH = "/p/12345test";
+    repository = new BaseMemoryRepository().getRepository();
+    docMigrator.repository = repository;
+    Session session = repository.loginAdministrative();
+    ContentManager contentManager = session.getContentManager();
+    AccessControlManager accessControlManager = session.getAccessControlManager();
+    JSONObject doc = new JSONObject(DOC_WITH_ADDITIONAL_PAGE);
+    LiteJsonImporter jsonImporter = new LiteJsonImporter();
+    jsonImporter.internalImportContent(contentManager, doc, DOC_PATH, true, 
+        accessControlManager);
+    Content docContent = contentManager.get(DOC_PATH);
+    assertTrue(docMigrator.fileContentNeedsMigration(docContent));
+    docMigrator.migrateFileContent(docContent);
+    docContent = contentManager.get(DOC_PATH);
+
+    Content subpage = contentManager.get(DOC_PATH + "/id2545619");
+    assertTrue(docMigrator.isPageNode(subpage, contentManager));
+    assertFalse(docMigrator.isPageNode(docContent, contentManager));
+
   }
 }

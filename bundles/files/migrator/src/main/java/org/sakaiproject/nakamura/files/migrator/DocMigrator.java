@@ -30,11 +30,14 @@ import org.sakaiproject.nakamura.api.files.FileMigrationService;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
+import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
+import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.resource.lite.LiteJsonImporter;
 import org.sakaiproject.nakamura.util.ExtendedJSONWriter;
+import org.sakaiproject.nakamura.util.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +86,20 @@ public class DocMigrator implements FileMigrationService {
       throw new RuntimeException("Could not determine requiresMigration with content " + content.getPath());
     }
   }
-  
+
+  @Override
+  public boolean isPageNode(Content content, ContentManager contentManager)
+      throws StorageClientException, AccessDeniedException {
+    if ( content != null && content.hasProperty("page")) {
+      String parentPath = PathUtils.getParentReference(content.getPath());
+      Content parent = contentManager.get(parentPath);
+      if ( parent != null ) {
+        return !(isNotSakaiDoc(parent));
+      }
+    }
+    return false;
+  }
+
   protected boolean requiresMigration(JSONObject subtree, Content originalStructure, ContentManager contentManager) throws JSONException {
     boolean requiresMigration = false;
     for (Iterator<String> keysIterator = subtree.keys(); keysIterator.hasNext();) {

@@ -19,6 +19,7 @@ package org.sakaiproject.nakamura.version.impl.sparse;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -28,6 +29,7 @@ import org.apache.sling.api.resource.ResourceWrapper;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.sakaiproject.nakamura.api.files.FileMigrationService;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.content.Content;
@@ -53,7 +55,10 @@ import javax.servlet.http.HttpServletResponse;
 @Property(name="handling.servlet",value="GetVersionServlet")
 public class SparseGetVersionServletHandler extends AbstractSafeMethodsServletResourceHandler {
 
-  public static final Logger LOG = LoggerFactory.getLogger(SparseGetVersionServletHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SparseGetVersionServletHandler.class);
+
+  @Reference
+  private FileMigrationService docMigrator;
 
   /**
    * {@inheritDoc}
@@ -100,6 +105,21 @@ public class SparseGetVersionServletHandler extends AbstractSafeMethodsServletRe
     }
     final String versionName = requestVersionName;
     final Content versionContent = versionContentTemp;
+
+    try {
+      if (this.docMigrator.isPageNode(versionContent, contentManager)) {
+        LOG.info("Will migrate version at path " + versionContent.getPath());
+        // TODO expose the PageMigrator's migratePage method and use it here to migrate just the
+        // page node, without storing the upgraded data.
+      }
+    } catch (StorageClientException e) {
+      LOG.warn(e.getMessage(), e);
+      throw new ServletException(e.getMessage(), e);
+    } catch (AccessDeniedException e) {
+      LOG.warn(e.getMessage(), e);
+      throw new ServletException(e.getMessage(), e);
+    }
+
     final VersionRequestPathInfo versionRequestPathInfo = new VersionRequestPathInfo(
         requestPathInfo);
 
@@ -149,7 +169,7 @@ public class SparseGetVersionServletHandler extends AbstractSafeMethodsServletRe
        if (type.equals(InputStream.class)) {
          getResourceMetadata()
            .setContentLength(toLong(versionContent
-             .getProperty(Content.LENGTH_FIELD)));
+               .getProperty(Content.LENGTH_FIELD)));
          try {
            return (AdapterType) contentManager.getVersionInputStream(versionContent.getPath(), versionName);
          } catch (AccessDeniedException e) {

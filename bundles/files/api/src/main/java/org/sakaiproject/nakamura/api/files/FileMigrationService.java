@@ -1,6 +1,9 @@
 package org.sakaiproject.nakamura.api.files;
 
+import org.sakaiproject.nakamura.api.lite.StorageClientException;
+import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.content.Content;
+import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 
 /**
  * Licensed to the Sakai Foundation (SF) under one
@@ -25,4 +28,8 @@ public interface FileMigrationService {
   boolean fileContentNeedsMigration(Content content);
 
   void migrateFileContent(Content content);
+
+  boolean isPageNode(Content content, ContentManager contentManager)
+      throws StorageClientException, AccessDeniedException;
+
 }
