@@ -138,7 +138,7 @@ public class PageMigrator {
     if (!structureItem.has("_ref") || StringUtils.isBlank(structureItem.getString("_ref"))) {
       return;
     }
-    LOGGER.debug("processing page {} from structure0", reference);
+    LOGGER.info("processing page {} from structure0", reference);
     String ref = structureItem.getString("_ref");
     if (!originalStructure.has(ref) || !originalStructure.getJSONObject(ref).has("rows")) {
       newStructure.put(ref, migratePage(originalStructure, newStructure.getString("_path"), widgetsUsed, ref));
@@ -146,7 +146,8 @@ public class PageMigrator {
     docMigrator.processStructure0(structureItem, originalStructure, newStructure);
   }
 
-  JSONObject migratePage(JSONObject originalStructure, String contentId, Set<String> widgetsUsed, String ref) throws JSONException {
+  public JSONObject migratePage(JSONObject originalStructure, String contentId,
+                          Set<String> widgetsUsed, String ref) throws JSONException {
     Document page;
     JSONObject oldFashionedWidget = originalStructure.getJSONObject(ref);
     if (oldFashionedWidget.has("page")) {

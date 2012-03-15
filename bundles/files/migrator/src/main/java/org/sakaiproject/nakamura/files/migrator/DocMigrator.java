@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -176,6 +177,18 @@ public class DocMigrator implements FileMigrationService {
         }
       }
     }
+  }
+
+  public JSONObject migrateSinglePage(JSONObject originalStructure,
+                                String pagePath) throws JSONException {
+    Set<String> widgetsUsed = new HashSet<String>();
+    String contentId = PathUtils.getParentReference(pagePath);
+    String ref = PathUtils.lastElement(pagePath);
+
+    JSONObject newStructure = new JSONObject();
+    newStructure.put(ref, this.pageMigrator.migratePage(originalStructure, contentId,
+        widgetsUsed, ref));
+    return newStructure;
   }
   
   protected Object convertArraysToObjects(Object json) throws JSONException {
