@@ -18,6 +18,7 @@
 package org.sakaiproject.nakamura.activity;
 
 import static org.apache.sling.jcr.resource.JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY;
+import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_FEED_NAME;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_NAME;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.LITE_EVENT_TOPIC;
@@ -58,7 +59,7 @@ import javax.servlet.ServletException;
 public class ActivityServiceImpl implements ActivityService {
 
   @Reference
-  private EventAdmin eventAdmin;
+  EventAdmin eventAdmin;
 
   public void createActivity(Session session, Content targetLocation,  String userId, ActivityServiceCallback callback) throws AccessDeniedException, StorageClientException, ServletException, IOException {
     if ( userId == null ) {
@@ -89,7 +90,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
     // create activity within activityStore
     String activityPath = StorageClientUtils.newPath(path, ActivityUtils.createId());
-    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), "activityFeed");
+    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_FEED_NAME);
 
     if (!contentManager.exists(activityFeedPath)) {
       contentManager.update(new Content(activityFeedPath, null));
