@@ -18,12 +18,15 @@
 package org.sakaiproject.nakamura.activity;
 
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_FEED_RESOURCE_TYPE;
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE;
+import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_APPLICATION_ID;
+import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_AUDIENCE_ID;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_TEMPLATE_ID;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
@@ -46,13 +49,15 @@ import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.content.Content;
+import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.resource.lite.SparseContentResource;
 import org.sakaiproject.nakamura.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-
+import java.util.List;
+import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -148,12 +153,33 @@ public class LiteActivityCreateServlet extends SlingAllMethodsServlet {
     }
     try {
       
+      final Map<String, Object> additionalAttributes = Maps.newHashMap(); 
+      RequestParameter[] audience = request.getRequestParameters(PARAM_AUDIENCE_ID); 
+      if ( audience != null ) {
+        List<String> audienceNames = Lists.newArrayList(); 
+        for ( RequestParameter param : audience ) {
+          audienceNames.add(param.toString());   
+        }
+        additionalAttributes.put(PARAM_AUDIENCE_ID, audienceNames.toArray(new
+            String[audienceNames.size()]));
+      }
       
       final Session session = StorageClientUtils.adaptToSession(request.getResourceResolver().adaptTo(
           javax.jcr.Session.class));
+      final ContentManager contentManager = session.getContentManager();
+
       activityService.createActivity(session, location, session.getUserId(), new ActivityServiceCallback() {
         
-        public void processRequest(Content activityNode) throws StorageClientException, ServletException, IOException {
+        public void processRequest(Content activityNode) throws StorageClientException, ServletException, IOException, AccessDeniedException {
+
+          // apply additional properties if any
+          if (!additionalAttributes.isEmpty()) {
+            for (Map.Entry<String, Object> e : additionalAttributes.entrySet()) {
+              activityNode.setProperty(e.getKey(), e.getValue());
+            }
+            contentManager.update(activityNode);
+          }
+
           RequestPathInfo requestPathInfo = request.getRequestPathInfo();
           // Wrapper which needs to remove the .activity selector from RequestPathInfo to
           // avoid

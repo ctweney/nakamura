@@ -37,6 +37,10 @@ public interface ActivityConstants {
    */
   public static final String PARAM_ACTOR_ID = "sakai:activity-actor";
   /**
+   * The property name for the list of authorizables who are affected by this event.
+   */
+  public static final String PARAM_AUDIENCE_ID = "sakai:activity-audience";
+  /**
    * The property name for the source of the activity.
    */
   public static final String PARAM_SOURCE = "sakai:activity-source";
