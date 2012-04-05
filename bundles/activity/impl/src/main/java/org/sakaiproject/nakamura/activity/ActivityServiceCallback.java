@@ -27,6 +27,6 @@ import javax.servlet.ServletException;
 
 public interface ActivityServiceCallback {
 
-  void processRequest(Content activtyNode) throws StorageClientException, ServletException, IOException, AccessDeniedException;
+  void processRequest(Content activityNode) throws StorageClientException, ServletException, IOException, AccessDeniedException;
 
 }

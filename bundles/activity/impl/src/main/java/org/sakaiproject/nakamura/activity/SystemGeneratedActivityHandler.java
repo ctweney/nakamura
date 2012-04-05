@@ -56,9 +56,9 @@ public class SystemGeneratedActivityHandler implements EventHandler {
   private Repository repository;
   @Reference
   private ActivityService activityService;
-  
+
   public void handleEvent(Event event) {
-    
+
     Session adminSession = null;
     try {
       adminSession = repository.loginAdministrative();
@@ -76,18 +76,18 @@ public class SystemGeneratedActivityHandler implements EventHandler {
       Content location = contentManager.get(path);
       if ( location != null ) {
         activityService.createActivity(adminSession, location, userId, new ActivityServiceCallback() {
-          
-          public void processRequest(Content activtyNode) throws StorageClientException,
+
+          public void processRequest(Content activityNode) throws StorageClientException,
               ServletException, IOException, AccessDeniedException {
-           
+
             for ( Entry<String, Object> e : activityProperties.entrySet()) {
-              activtyNode.setProperty(e.getKey(), e.getValue());
+              activityNode.setProperty(e.getKey(), e.getValue());
             }
-            contentManager.update(activtyNode); 
+            contentManager.update(activityNode);
           }
         });
       }
-      
+
     } catch (ClientPoolException e) {
       LOG.warn(e.getMessage(),e);
     } catch (StorageClientException e) {
