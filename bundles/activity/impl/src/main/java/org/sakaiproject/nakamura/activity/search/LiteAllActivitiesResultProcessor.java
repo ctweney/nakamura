@@ -168,19 +168,19 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
       }
     }
 
-    try {
-      // write all the users
-      for (String userID : users) {
-        write.key(userID);
-        write.object();
+    // write all the users
+    for (String userID : users) {
+      write.key(userID);
+      write.object();
+      try {
         ExtendedJSONWriter.writeValueMapInternals(write, basicUserInfoService
             .getProperties(authorizableManager.findAuthorizable(userID)));
-        write.endObject();
+      } catch (AccessDeniedException e) {
+        LOGGER.debug(e.getMessage(), e);
       }
-
-    } catch (AccessDeniedException e) {
-      LOGGER.debug(e.getMessage(), e);
+      write.endObject();
     }
+
     write.endObject();
   }
 
