@@ -48,12 +48,15 @@ import org.sakaiproject.nakamura.util.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Component(immediate = true, metatype = true)
 @Service(value = SolrSearchResultProcessor.class)
 @Properties(value = { @Property(name = "service.vendor", value = "The Sakai Foundation"),
-    @Property(name =  SolrSearchConstants.REG_PROCESSOR_NAMES, value = "AllActivities") })
+    @Property(name =  SolrSearchConstants.REG_PROCESSOR_NAMES, value = "LiteAllActivities") })
 public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcessor {
 
 
@@ -94,16 +97,9 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
           write.value(true);
           ExtendedJSONWriter.writeValueMapInternals(write, activityNode.getProperties());
         }
-        write.key("who");
-        write.object();
-        try {
-          ExtendedJSONWriter.writeValueMapInternals(write, basicUserInfoService
-              .getProperties(authorizableManager.findAuthorizable((String) activityNode
-                  .getProperty(ActivityConstants.PARAM_ACTOR_ID))));
-        } catch (AccessDeniedException e) {
-          LOGGER.debug(e.getMessage(), e);
-        }
-        write.endObject();
+
+        writeUsers(write, authorizableManager, activityNode);
+
         if (contentNode != null) {
           // KERN-1867 Activity feed should return more data about a group
           if ("sakai/group-home".equals(contentNode.getProperty("sling:resourceType"))) {
@@ -150,6 +146,42 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
     } catch (StorageClientException e) {
       LOGGER.warn(e.getMessage(), e);
     }
+  }
+
+  private void writeUsers(JSONWriter write, AuthorizableManager authorizableManager, Content activityNode) throws JSONException, StorageClientException {
+    write.key("users");
+    write.object();
+
+    List<String> users = new ArrayList<String>();
+
+    // actor
+    users.add((String) activityNode.getProperty(ActivityConstants.PARAM_ACTOR_ID));
+
+    // audience (if present)
+    Object audienceObj = activityNode.getProperty(ActivityConstants.PARAM_AUDIENCE_ID);
+    if (audienceObj != null) {
+      if (audienceObj instanceof String[]) {
+        String[] audience = (String[]) audienceObj;
+        Collections.addAll(users, audience);
+      } else if (audienceObj instanceof String) {
+        users.add(audienceObj.toString());
+      }
+    }
+
+    try {
+      // write all the users
+      for (String userID : users) {
+        write.key(userID);
+        write.object();
+        ExtendedJSONWriter.writeValueMapInternals(write, basicUserInfoService
+            .getProperties(authorizableManager.findAuthorizable(userID)));
+        write.endObject();
+      }
+
+    } catch (AccessDeniedException e) {
+      LOGGER.debug(e.getMessage(), e);
+    }
+    write.endObject();
   }
 
   /**

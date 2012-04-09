@@ -9,7 +9,7 @@
   },
   "sling:resourceType": "sakai/solr-search",
   "sakai:propertyprovider": "Activity",
-  "sakai:resultprocessor": "AllActivities",
+  "sakai:resultprocessor": "LiteAllActivities",
   "sakai:title": "Activity - All System Activities",
   "sakai:shortDescription": "Shows the latest activities in the system.",
   "sakai:description": [

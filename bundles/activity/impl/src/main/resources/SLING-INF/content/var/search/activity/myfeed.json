@@ -9,6 +9,7 @@
   },
   "sling:resourceType": "sakai/solr-search",
   "sakai:propertyprovider": "Activity",
+  "sakai:resultprocessor": "LiteAllActivities",
   "sakai:title": "Activity - My feed.",
   "sakai:shortDescription": "Shows the latest activities for the current user.",
   "sakai:parameters" : [
