@@ -46,7 +46,7 @@ class TC_Kern1376Test < Test::Unit::TestCase
 	add_activity(contentpath, "status", "default", "Third activity")
 
     wait_for_indexer()
-    res = @s.execute_get(@s.url_for("/var/search/pool/activityfeed.json"), {
+    res = @s.execute_get(@s.url_for("/var/search/activity/pooledcontent.json"), {
       "p" => "/p/#{contentid}"
     })
     assert_equal("200", res.code, "Should have found activity feed")

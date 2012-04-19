@@ -504,6 +504,8 @@
 
    <!-- sakai/activity -->
    <field name="timestamp" type="long" indexed="true" stored="false" />
+   <field name="activity-type" type="string" indexed="true" stored="false" />
+   <field name="activityMessage" type="string" indexed="true" stored="false" />
 
    <!-- sakai/contact -->
    <field name="state" type="string" indexed="true" stored="true" />

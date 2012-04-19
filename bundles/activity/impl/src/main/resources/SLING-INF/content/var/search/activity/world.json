@@ -1,0 +1,25 @@
+{
+  "sakai:query-template": "${_pGroupQuery} AND resourceType:sakai/activity ${_pActivityTypeQuery} ${_pActivityMessageQuery}",
+  "sakai:query-template-options": {
+    "sort": "${sortOn} ${sortOrder}"
+  },
+  "sakai:query-template-defaults": {
+    "sortOn": "_created",
+    "sortOrder": "desc"
+  },
+  "sling:resourceType": "sakai/solr-search",
+  "sakai:resultprocessor": "LiteAllActivities",
+  "sakai:propertyprovider": [ "WorldActivityFeed", "ActivityType", "ActivityMessage" ],
+  "sakai:title": "Activity - Worlds Feed",
+  "sakai:shortDescription": "Returns recent activity nodes for the groups that make up a world.",
+  "sakai:parameters" : [
+    "{\"name\" : \"group\", \"description\" : \"Mandatory. The ID of the group to retrieve. Multiple group parameters are allowable.\"}",
+    "{\"name\" : \"activityType\", \"description\" : \"Optionally filter by sakai:activity-type (can be multiple).\"}",
+    "{\"name\" : \"activityMessage\", \"description\" : \"Optionally filter by sakai:activityMessage (can be multiple).\"}",
+    "{\"name\" : \"sortOn\", \"description\" : \"The property you want to sort on.\"}",
+    "{\"name\" : \"sortOrder\", \"description\" : \"The way of ordering. 'asc' or 'desc'.\"}"
+  ],
+  "sakai:response":[
+    "Doing a standard query searching for activities with type user.<br /> Example: Request to: /var/search/activity/world.json?group=g1&activityType=user<br /><pre class=\"json\">{\"items\": 25,\n  \"results\": [{\n    \"sling:resourceType\": \"sakai/user-home\",\n    \"_created\": 1334786266062,\n    \"_id\": \"h-be4ImhEeGhPzMFqeXUGw+\",\n    \"_lastModifiedBy\": \"admin\",\n    \"_lastModified\": 1334786266062,\n    \"_createdBy\": \"admin\",\n    \"_path\": \"a:user-manager-13347862654659898\",\n    \"sakai:activity-source\": \"a:user-manager-13347862654659898\",\n    \"sakai:activity-type\": \"user\",\n    \"sakai:activity-actor\": \"admin\",\n    \"sakai:activity-appid\": \"Authorizable\",\n    \"sakai:activity-templateid\": \"default\",\n    \"sakai:activityMessage\": \"USER_CREATED\",\n    \"users\": {\n      \"admin\": {\n        \"hash\": \"admin\",\n        \"basic\": {\n          \"access\": \"everybody\",\n          \"elements\": {\n            \"lastName\": {\n              \"value\": \"User\"\n            },\n            \"email\": {\n              \"value\": \"admin@sakai.invalid\"\n            },\n            \"firstName\": {\n              \"value\": \"Admin\"\n            }\n          }\n        },\n        \"rep:userId\": \"admin\",\n        \"userid\": \"admin\",\n        \"counts\": {\n        },\n        \"sakai:excludeSearch\": false,\n        \"homePath\": \"/~admin\"\n      }\n    }\n  }\n  ],\n  \"total\": 1\n}</pre>"
+  ]
+}

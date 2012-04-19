@@ -56,7 +56,7 @@ public class ActivitySearchResultProviderTest extends AbstractEasyMockTest {
     expect(resolver.adaptTo(Session.class)).andReturn(session);
 
     replay();
-    ActivitySearchPropertyProvider provider = new ActivitySearchPropertyProvider();
+    PrivateActivityFeedSearchPropertyProvider provider = new PrivateActivityFeedSearchPropertyProvider();
     Map<String, String> propertiesMap = new HashMap<String, String>();
     provider.loadUserProperties(request, propertiesMap);
     String actual = propertiesMap.get("_myFeed");
@@ -79,7 +79,7 @@ public class ActivitySearchResultProviderTest extends AbstractEasyMockTest {
     expect(resolver.adaptTo(Session.class)).andReturn(session);
 
     replay();
-    ActivitySearchPropertyProvider provider = new ActivitySearchPropertyProvider();
+    PrivateActivityFeedSearchPropertyProvider provider = new PrivateActivityFeedSearchPropertyProvider();
     Map<String, String> propertiesMap = new HashMap<String, String>();
     provider.loadUserProperties(request, propertiesMap);
     String actual = propertiesMap.get("_myFeed");

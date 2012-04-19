@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Sakai Foundation (SF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -15,7 +15,8 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.files.pool;
+
+package org.sakaiproject.nakamura.activity.search;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -23,42 +24,38 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestParameter;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.solr.client.solrj.util.ClientUtils;
-import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchPropertyProvider;
+import org.sakaiproject.nakamura.util.PathUtils;
 
 import java.util.Map;
 
-/**
- * Translate a Pooled Content resource path into an internal node path for use by a search query.
- */
-@Component
-@Service
+@Component(label = "WorldActivityFeedSearchPropertyProvider")
 @Properties({
+    @Property(name = "sakai.search.provider", value = "WorldActivityFeed"),
+    @Property(name = "sakai.search.resourceType", value = "sakai/page"),
     @Property(name = "service.vendor", value = "The Sakai Foundation"),
-    @Property(name = "service.description", value = "Translates an external Pooled Content path to a Node path for searching."),
-    @Property(name = "sakai.search.provider", value = "PooledContentNode") })
-public class PooledContentNodeSearchPropertyProvider implements SolrSearchPropertyProvider {
-  public static final String POOLED_CONTENT_PROPERTY = "p";
-  public static final String POOLED_CONTENT_NODE_PATH_PROPERTY = "_pNodePath";
+    @Property(name = "service.description", value = "Provides properties to the activity search templates.")})
+@Service
+public class WorldActivityFeedSearchPropertyProvider implements SolrSearchPropertyProvider {
 
-  /**
-   * @see org.sakaiproject.nakamura.api.search.SearchPropertyProvider#loadUserProperties(org.apache.sling.api.SlingHttpServletRequest, java.util.Map)
-   */
+  private static final String GROUP_PARAM = "group";
+
   public void loadUserProperties(SlingHttpServletRequest request, Map<String, String> propertiesMap) {
-    RequestParameter rp = request.getRequestParameter(POOLED_CONTENT_PROPERTY);
+    RequestParameter[] rp = request.getRequestParameters(GROUP_PARAM);
+    StringBuilder groupQuery = new StringBuilder("(");
     if (rp != null) {
-      String resourcePath = rp.getString();
-      ResourceResolver resourceResolver = request.getResourceResolver();
-      Resource pooledResource = resourceResolver.getResource(resourcePath);
-      if (pooledResource != null) {
-        Content pooledContent = pooledResource.adaptTo(Content.class);
-        String safePath = ClientUtils.escapeQueryChars(pooledContent.getPath());
-        propertiesMap.put(POOLED_CONTENT_NODE_PATH_PROPERTY, safePath);
+      for ( int i = 0 ; i < rp.length; i++ ) {
+        String groupID = ClientUtils.escapeQueryChars(PathUtils.toUserContentPath("/group/" + rp[i].getString()));
+        groupQuery.append("path:").append(groupID).append("/activityFeed");
+        if ( i < rp.length - 1) {
+          groupQuery.append(" OR ");
+        }
       }
     }
+    groupQuery.append(")");
+
+    propertiesMap.put("_pGroupQuery", groupQuery.toString());
   }
 
 }
