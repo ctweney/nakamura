@@ -35,8 +35,8 @@ import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
+import org.sakaiproject.nakamura.api.lite.content.ActivityManager;
 import org.sakaiproject.nakamura.api.lite.content.Content;
-import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,9 +115,9 @@ public class ActivityDeliverer implements MessageListener {
       final String activityItemPath = message
           .getStringProperty(ActivityConstants.EVENT_PROP_PATH);
       Session session = sparseRepository.loginAdministrative(); 
-      ContentManager contentManager = session.getContentManager();
+      ActivityManager activityManager = session.getActivityManager();
       try {
-        Content activity = contentManager.get(activityItemPath);
+        Content activity = activityManager.get(activityItemPath);
         if (activity == null || !activity.hasProperty(PARAM_ACTOR_ID)) {
           // we must know the actor
           throw new IllegalStateException(
@@ -165,7 +165,7 @@ public class ActivityDeliverer implements MessageListener {
   protected void deliverActivityToFeed(Session session, Content activity,
       String activityFeedPath) throws AccessDeniedException, StorageClientException {
     // ensure the activityFeed node with the proper type
-    ContentManager contentManager = session.getContentManager();
+    ActivityManager activityManager = session.getActivityManager();
     String deliveryPath = StorageClientUtils
         .newPath(activityFeedPath, StorageClientUtils.getObjectName(activity.getPath()));
     Builder<String, Object> contentProperties = ImmutableMap.builder();
@@ -177,7 +177,7 @@ public class ActivityDeliverer implements MessageListener {
     contentProperties.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
         ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE);
     Content content = new Content(deliveryPath, contentProperties.build());
-    contentManager.update(content);
+    activityManager.update(content);
   }
 
 }

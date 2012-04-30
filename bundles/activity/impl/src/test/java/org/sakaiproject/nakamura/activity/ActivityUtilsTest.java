@@ -30,7 +30,7 @@ public class ActivityUtilsTest extends AbstractEasyMockTest{
   @Test
   public void testUserFeed() throws RepositoryException {
     String user = "admin";
-    String expected = "a:admin/private/"
+    String expected = "act:a:admin/private/"
         + ActivityConstants.ACTIVITY_FEED_NAME;
     String result = ActivityUtils.getUserFeed(user);
     Assert.assertEquals(expected, result);

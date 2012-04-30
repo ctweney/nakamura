@@ -38,6 +38,7 @@ import org.osgi.service.event.EventAdmin;
 import org.osgi.service.event.EventHandler;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.ActivityService;
+import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
@@ -50,6 +51,7 @@ import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
 import org.sakaiproject.nakamura.api.lite.authorizable.Group;
 import org.sakaiproject.nakamura.api.lite.authorizable.User;
+import org.sakaiproject.nakamura.api.lite.content.ActivityManager;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.user.UserConstants;
@@ -116,6 +118,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
       @SuppressWarnings("unchecked")
       final Map<String, Object> activityProperties = (Map<String, Object>) event.getProperty("attributes");
 
+      // make sure content item exists before creating activity on it
       final ContentManager contentManager = adminSession.getContentManager();
       Content location = contentManager.get(path);
       if (location != null) {
@@ -151,11 +154,11 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     if (!userId.equals(session.getUserId()) && !User.ADMIN_USER.equals(session.getUserId())) {
       throw new IllegalStateException("Only Administrative sessions may act on behalf of another user for activities");
     }
-    ContentManager contentManager = session.getContentManager();
+    ActivityManager activityManager = session.getActivityManager();
     // create activityStore if it does not exist
-    String path = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_STORE_NAME);
-    if (!contentManager.exists(path)) {
-      contentManager.update(new Content(path, ImmutableMap.<String, Object>of(
+    String path = StorageClientUtils.newPath(ActivityUtils.getActivityPath(targetLocation.getPath()), ACTIVITY_STORE_NAME);
+    if (!activityManager.exists(path)) {
+      activityManager.update(new Content(path, ImmutableMap.<String, Object>of(
           SLING_RESOURCE_TYPE_PROPERTY, ACTIVITY_STORE_RESOURCE_TYPE)));
       // set ACLs so that everyone can add activities; anonymous = none.
       session.getAccessControlManager().setAcl(
@@ -173,18 +176,18 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
     // create activity within activityStore
     String activityPath = StorageClientUtils.newPath(path, createId());
-    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_FEED_NAME);
+    String activityFeedPath = StorageClientUtils.newPath(ActivityUtils.getActivityPath(targetLocation.getPath()), ACTIVITY_FEED_NAME);
 
-    if (!contentManager.exists(activityFeedPath)) {
-      contentManager.update(new Content(activityFeedPath, null));
+    if (!activityManager.exists(activityFeedPath)) {
+      activityManager.update(new Content(activityFeedPath, null));
     }
-    if (!contentManager.exists(activityPath)) {
-      contentManager.update(new Content(activityPath, ImmutableMap.of(
+    if (!activityManager.exists(activityPath)) {
+      activityManager.update(new Content(activityPath, ImmutableMap.of(
           JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
           (Object) ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE)));
     }
 
-    Content activityNode = contentManager.get(activityPath);
+    Content activityNode = activityManager.get(activityPath);
     activityNode.setProperty(PARAM_ACTOR_ID, userId);
     activityNode.setProperty(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
     for (String key : activityProperties.keySet()) {
@@ -192,7 +195,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
 
     //save the content
-    contentManager.update(activityNode);
+    activityManager.update(activityNode);
 
     // post the asynchronous OSGi event
     final Dictionary<String, String> properties = new Hashtable<String, String>();

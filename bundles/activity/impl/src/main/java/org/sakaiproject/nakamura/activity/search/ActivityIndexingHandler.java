@@ -33,8 +33,8 @@ import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
+import org.sakaiproject.nakamura.api.lite.content.ActivityManager;
 import org.sakaiproject.nakamura.api.lite.content.Content;
-import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.solr.IndexingHandler;
 import org.sakaiproject.nakamura.api.solr.RepositorySession;
 import org.sakaiproject.nakamura.api.solr.ResourceIndexingService;
@@ -71,7 +71,7 @@ public class ActivityIndexingHandler implements IndexingHandler {
       ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE,
       ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
 
-  @Reference(target = "(type=sparse)")
+  @Reference(target = "(type=sparse-activity)")
   private ResourceIndexingService resourceIndexingService;
 
   @Activate
@@ -102,8 +102,8 @@ public class ActivityIndexingHandler implements IndexingHandler {
     if (!StringUtils.isBlank(path)) {
       try {
         Session session = repositorySession.adaptTo(Session.class);
-        ContentManager cm = session.getContentManager();
-        Content content = cm.get(path);
+        ActivityManager activityManager = session.getActivityManager();
+        Content content = activityManager.get(path);
 
         if (content != null) {
           if (!CONTENT_TYPES.contains(content.getProperty("sling:resourceType"))) {

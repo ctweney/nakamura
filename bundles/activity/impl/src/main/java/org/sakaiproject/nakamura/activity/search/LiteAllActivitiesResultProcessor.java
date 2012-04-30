@@ -33,6 +33,7 @@ import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.authorizable.Authorizable;
 import org.sakaiproject.nakamura.api.lite.authorizable.AuthorizableManager;
+import org.sakaiproject.nakamura.api.lite.content.ActivityManager;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.search.solr.Query;
@@ -75,9 +76,10 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
         .adaptTo(javax.jcr.Session.class));
     try {
       ContentManager contentManager = session.getContentManager();
+      ActivityManager activityManager = session.getActivityManager();
       AuthorizableManager authorizableManager = session.getAuthorizableManager();
       String path = result.getPath();
-      Content activityNode = contentManager.get(path);
+      Content activityNode = activityManager.get(path);
       if (activityNode != null ) {
         String sourcePath = (String) activityNode.getProperty(ActivityConstants.PARAM_SOURCE);
         LOGGER.debug("Processing {} {} Source = {} ", new Object[]{path, activityNode.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY), sourcePath});

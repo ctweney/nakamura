@@ -105,5 +105,6 @@ public interface ActivityConstants {
 
   String PRIVACY_PUBLIC = "public";
 
+  String PREFIX_ACTIVITY_PATH = "act:";
 
 }

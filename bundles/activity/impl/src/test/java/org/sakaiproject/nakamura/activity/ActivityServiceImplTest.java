@@ -28,7 +28,6 @@ import org.mockito.Mockito;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
@@ -79,8 +78,8 @@ public class ActivityServiceImplTest extends Assert {
     Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));
 
     // make sure activity store got created
-    String storePath = "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;
-    Content store = adminSession.getContentManager().get(storePath);
+    String storePath = ActivityConstants.PREFIX_ACTIVITY_PATH + "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;
+    Content store = adminSession.getActivityManager().get(storePath);
     Assert.assertNotNull(store);
     Assert.assertEquals(ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE,
         store.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY));
@@ -120,7 +119,7 @@ public class ActivityServiceImplTest extends Assert {
     Assert.assertFalse(canWrite);
 
     // make sure activity feed got created
-    Content feed = adminSession.getContentManager().get("/some/arbitrary/path/activityFeed");
+    Content feed = adminSession.getActivityManager().get(ActivityConstants.PREFIX_ACTIVITY_PATH + "/some/arbitrary/path/activityFeed");
     Assert.assertNotNull(feed);
 
     // make sure at least one activity node exists under the activity store
