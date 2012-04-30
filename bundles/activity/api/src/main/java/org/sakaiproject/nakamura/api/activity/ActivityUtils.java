@@ -45,7 +45,7 @@ public class ActivityUtils {
    * @return
    */
   public static String getUserFeed(String user) {
-    return ActivityConstants.PREFIX_ACTIVITY_PATH + LitePersonalUtils.getPrivatePath(user) + "/"
+    return LitePersonalUtils.getPrivatePath(user) + "/"
         + ActivityConstants.ACTIVITY_FEED_NAME;
   }
 
@@ -76,7 +76,7 @@ public class ActivityUtils {
   }
 
   public static String getActivityPath(String targetContentPath) {
-    return ActivityConstants.PREFIX_ACTIVITY_PATH + PathUtils.toUserContentPath(targetContentPath);
+    return PathUtils.toUserContentPath(targetContentPath);
   }
 
 }

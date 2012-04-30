@@ -78,7 +78,7 @@ public class ActivityServiceImplTest extends Assert {
     Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));
 
     // make sure activity store got created
-    String storePath = ActivityConstants.PREFIX_ACTIVITY_PATH + "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;
+    String storePath = "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;
     Content store = adminSession.getActivityManager().get(storePath);
     Assert.assertNotNull(store);
     Assert.assertEquals(ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE,
@@ -119,7 +119,7 @@ public class ActivityServiceImplTest extends Assert {
     Assert.assertFalse(canWrite);
 
     // make sure activity feed got created
-    Content feed = adminSession.getActivityManager().get(ActivityConstants.PREFIX_ACTIVITY_PATH + "/some/arbitrary/path/activityFeed");
+    Content feed = adminSession.getActivityManager().get("/some/arbitrary/path/activityFeed");
     Assert.assertNotNull(feed);
 
     // make sure at least one activity node exists under the activity store
