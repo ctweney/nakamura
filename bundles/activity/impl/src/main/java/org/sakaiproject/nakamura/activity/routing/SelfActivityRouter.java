@@ -19,6 +19,7 @@ package org.sakaiproject.nakamura.activity.routing;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.content.Content;
@@ -59,7 +60,7 @@ public class SelfActivityRouter implements ActivityRouter {
     try {
       String self = activity.getProperty("sakai:activity-source")
           .getString();
-      String path = StorageClientUtils.newPath(self, "activityFeed");
+      String path = ActivityUtils.getActivityPath(StorageClientUtils.newPath(self, "activityFeed"));
       ActivityRoute route = new AbstractActivityRoute(path) {
       };
       routes.add(route);
@@ -73,7 +74,7 @@ public class SelfActivityRouter implements ActivityRouter {
 
   public void route(Content activity, List<ActivityRoute> routes, Session adminSession) {
     String self = (String) activity.getProperty("sakai:activity-source");
-    String path = StorageClientUtils.newPath(self, "activityFeed");
+    String path = ActivityUtils.getActivityPath(StorageClientUtils.newPath(self, "activityFeed"));
     ActivityRoute route = new AbstractActivityRoute(path) {
     };
     routes.add(route);    

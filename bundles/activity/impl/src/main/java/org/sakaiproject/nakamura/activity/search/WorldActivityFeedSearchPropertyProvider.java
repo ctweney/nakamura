@@ -25,6 +25,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.solr.client.solrj.util.ClientUtils;
+import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchPropertyProvider;
 import org.sakaiproject.nakamura.util.PathUtils;
 
@@ -46,7 +47,8 @@ public class WorldActivityFeedSearchPropertyProvider implements SolrSearchProper
     StringBuilder groupQuery = new StringBuilder("(");
     if (rp != null) {
       for ( int i = 0 ; i < rp.length; i++ ) {
-        String groupID = ClientUtils.escapeQueryChars(PathUtils.toUserContentPath("/group/" + rp[i].getString()));
+        String groupID = ClientUtils.escapeQueryChars(ActivityUtils.getActivityPath(
+            PathUtils.toUserContentPath("/group/" + rp[i].getString())));
         groupQuery.append("path:").append(groupID).append("/activityFeed");
         if ( i < rp.length - 1) {
           groupQuery.append(" OR ");
