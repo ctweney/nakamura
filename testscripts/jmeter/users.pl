@@ -3,7 +3,7 @@
 # Ugly hack to test how long it costs to create a certain number of users by curl
 # a.m.berg@uva.nl
 
-$users=2000;
+$users=20;
 $clean=100;
 $counter_time=0;
 $counter=0;
@@ -19,7 +19,7 @@ while ($counter < $users){
     $counter_time++;
     $counter++;
     $val=&create_profile("tester$counter"); 
-    system ("curl -e http://localhost:8080 $val -F:name=tester$counter -Fpwd=test -FpwdConfirm=test http://admin:admin\@localhost:8080/system/userManager/user.create.html");
+    system ("curl -e http://localhost:8080 $val -F:name=tester$counter -Fpwd=test -FpwdConfirm=test http://admin:admin\@localhost:8080/system/userManager/user.create.html 2> /dev/null  >/dev/null;");
 }
 
 
