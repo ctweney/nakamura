@@ -34,7 +34,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.osgi.service.component.ComponentContext;
-import org.sakaiproject.nakamura.api.http.cache.CachedResponse;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -51,6 +50,9 @@ import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CacheControlFilterTest {
@@ -85,6 +87,10 @@ public class CacheControlFilterTest {
   @Before
   public void setup() throws Exception {
     cacheControlFilter = new CacheControlFilter();
+    ResponseCacheServiceImpl responseCacheService = new ResponseCacheServiceImpl();
+    responseCacheService.cacheManagerService = cacheMangerService;
+    cacheControlFilter.responseCacheService = responseCacheService;
+
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
         "root;.*(js|css)$;.expires:3456000;Cache-Control: max-age=43200 public;Vary:Accept-Encoding",
@@ -100,6 +106,8 @@ public class CacheControlFilterTest {
     cacheControlFilter.extHttpService = extHttpService;
     cacheControlFilter.activate(componentContext);
     cacheControlFilter.init(filterConfig);
+
+    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
   }
   
   @After
@@ -151,10 +159,6 @@ public class CacheControlFilterTest {
     };
     when(response.getOutputStream()).thenReturn(servletOutputStream);
 
-    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
-    
-    cacheControlFilter.cacheManagerService = cacheMangerService;
-
     cacheControlFilter.doFilter(request, response, new TFilter(true));
 
     verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
@@ -179,11 +183,8 @@ public class CacheControlFilterTest {
     };
     when(response.getOutputStream()).thenReturn(servletOutputStream);
 
-    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
     CachedResponse cachedResponse  = populateResponseCapture(true);
     when(cache.get("/cacheable/config.json?null")).thenReturn(cachedResponse);
-    
-    cacheControlFilter.cacheManagerService = cacheMangerService;
 
     cacheControlFilter.doFilter(request, response, null);
 
@@ -232,9 +233,7 @@ public class CacheControlFilterTest {
     StringWriter stringWriter = new StringWriter();
     PrintWriter printWriter = new PrintWriter(stringWriter);
     when(response.getWriter()).thenReturn(printWriter);
-    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
 
-    cacheControlFilter.cacheManagerService = cacheMangerService;
     cacheControlFilter.doFilter(request, response, new TFilter(false));
 
     verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
@@ -256,6 +255,40 @@ public class CacheControlFilterTest {
     } else {
       verify(response, never()).addHeader(anyString(), anyString());
     }
+  }
+
+  private class TFilter implements FilterChain {
+
+    private boolean useOutputStream;
+
+    public TFilter(boolean userOutputStream) {
+      this.useOutputStream = userOutputStream;
+    }
+
+    @SuppressWarnings("deprecation")
+    public void doFilter(ServletRequest request, ServletResponse response)
+        throws IOException, ServletException {
+      HttpServletResponse sresponse = (HttpServletResponse) response;
+      sresponse.addDateHeader("Date", System.currentTimeMillis());
+      sresponse.setDateHeader("Last-Modified", System.currentTimeMillis());
+      sresponse.setCharacterEncoding("URF-8");
+      sresponse.setContentLength(10);
+      sresponse.setContentType("test/plain");
+      sresponse.setHeader("Cache-Control", "max-age=3600");
+      sresponse.setIntHeader("Age", 1000);
+      sresponse.setLocale(new Locale("en","GB"));
+      sresponse.setStatus(200);
+      sresponse.setStatus(200, "Ok");
+      sresponse.addHeader("Cache-Control", " public");
+      sresponse.addIntHeader("Age", 101);
+      if ( useOutputStream ) {
+        sresponse.getOutputStream().write(new byte[1024]);
+      } else {
+        sresponse.getWriter().write("ABCDEF");
+
+      }
+    }
+
   }
 
 }
