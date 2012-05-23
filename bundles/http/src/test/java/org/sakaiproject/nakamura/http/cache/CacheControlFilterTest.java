@@ -87,9 +87,7 @@ public class CacheControlFilterTest {
   @Before
   public void setup() throws Exception {
     cacheControlFilter = new CacheControlFilter();
-    ResponseCacheServiceImpl responseCacheService = new ResponseCacheServiceImpl();
-    responseCacheService.cacheManagerService = cacheMangerService;
-    cacheControlFilter.responseCacheService = responseCacheService;
+    cacheControlFilter.cacheManagerService = cacheMangerService;
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
