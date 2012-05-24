@@ -88,6 +88,7 @@ public class CacheControlFilterTest {
   public void setup() throws Exception {
     cacheControlFilter = new CacheControlFilter();
     cacheControlFilter.cacheManagerService = cacheMangerService;
+    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
@@ -105,7 +106,6 @@ public class CacheControlFilterTest {
     cacheControlFilter.activate(componentContext);
     cacheControlFilter.init(filterConfig);
 
-    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
   }
   
   @After

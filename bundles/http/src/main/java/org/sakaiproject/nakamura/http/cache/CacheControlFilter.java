@@ -25,13 +25,15 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
-import org.sakaiproject.nakamura.api.http.cache.CachedResponse;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
 import org.sakaiproject.nakamura.util.telemetry.TelemetryCounter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Dictionary;
@@ -49,46 +51,39 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-/**
- * The <code>CacheControlFilter</code> class is a request level filter which applies a
- * Cache-Control response header on GET requests which match any of an arbitrary list of
- * configured regex patterns. Each configured pattern must also have a corresponding
- * maxage value (in seconds) to use if the pattern matches.
- * 
- * When more than one pattern matches, the filter sets the lowest maxage of the collection
- * of matching patterns.
- */
-@Component(immediate = true, metatype = true)
+@Component(immediate = true, metatype = true, enabled = true)
 @Properties(value = {
     @Property(name = "service.description", value = "Nakamura Cache-Control Filter"),
-    @Property(name = "sakai.cache.paths", value = { 
-        "dev;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding", 
+    @Property(name = "sakai.cache.paths", value = {
+        "dev;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "devwidgets;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "p;Cache-Control:no-cache"},
         description = "List of subpaths and max age for all content under subpath in seconds, setting to 0 makes it non cacheing"),
-    @Property(name = "sakai.cache.patterns", value = { 
+    @Property(name = "sakai.cache.patterns", value = {
         "root;.*(js|css)$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "root;.*html$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "var;^/var/search/public/.*$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:3600;Vary: Accept-Encoding",
-        "var;^/var/widgets.json$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding" },
+        "var;^/var/widgets.json$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding"},
         description = "List of path prefixes followed by a regex. If the prefix starts with a root: it means files in the root folder that match the pattern."),
     @Property(name = "service.vendor", value = "The Sakai Foundation")})
 public class CacheControlFilter implements Filter {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CacheControlFilter.class);
+
   /**
    * map of expiry times for whole subtrees
    */
-  private Map<String, Map<String,String>> subPaths;
+  private Map<String, Map<String, String>> subPaths;
 
   /**
    * map of patterns by subtree
    */
-  private Map<String, Map<Pattern,  Map<String,String>>> subPathPatterns;
+  private Map<String, Map<Pattern, Map<String, String>>> subPathPatterns;
 
   /**
    * list of patterns for the root resources
    */
-  private Map<Pattern,  Map<String,String>> rootPathPatterns;
+  private Map<Pattern, Map<String, String>> rootPathPatterns;
 
   static final String SAKAI_CACHE_PATTERNS = "sakai.cache.patterns";
 
@@ -97,30 +92,20 @@ public class CacheControlFilter implements Filter {
   /**
    * Priority of this filter, higher number means sooner
    */
-  @Property(intValue=5)
+  @Property(intValue = 5)
   private static final String FILTER_PRIORITY_CONF = "filter.priority";
 
-  @Property(boolValue=false, label = "Disable Cache Filter",
-            description = "When selected, disables the caching filter completely. Disabling cache is not recommended in a production environment.")
-  private static final String DISABLE_CACHE_FOR_UI_DEV = "disable.cache.for.dev.mode";
-  
-  @Property(boolValue=true, label = "Bypass Cache for http://localhost",
-            description = "When selected, caching will be disabled for 'localhost' and '127.0.0.1', but enabled for all other hosts. Useful for developers.")
-  private static final String BYPASS_CACHE_FOR_LOCALHOST = "bypass.cache.for.localhost";
-
-  @Reference 
-  protected CacheManagerService cacheManagerService;
-  
   @Reference
   protected ExtHttpService extHttpService;
 
-  private boolean disableForDevMode;
-  
-  private boolean bypassForLocalhost;
+  @Reference
+  protected CacheManagerService cacheManagerService;
+
+  private Cache<CachedResponse> cache;
 
   /**
    * {@inheritDoc}
-   * 
+   *
    * @see javax.servlet.Filter#destroy()
    */
   public void destroy() {
@@ -128,7 +113,7 @@ public class CacheControlFilter implements Filter {
 
   /**
    * {@inheritDoc}
-   * 
+   *
    * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest,
    *      javax.servlet.ServletResponse, javax.servlet.FilterChain)
    */
@@ -136,79 +121,31 @@ public class CacheControlFilter implements Filter {
       throws IOException, ServletException {
     HttpServletRequest srequest = (HttpServletRequest) request;
     HttpServletResponse sresponse = (HttpServletResponse) response;
-    if (bypassForLocalhost && ("localhost".equals(request.getServerName()) 
-                                    || "127.0.0.1".equals(request.getServerName()))) {
-      // bypass for developer convenience
-      chain.doFilter(request, response);
-      return;
-    }
     String path = srequest.getPathInfo();
-    String cacheKey = srequest.getQueryString() == null ? path : path + "?" + srequest.getQueryString();
 
-    int respCode = 0;
-    Map<String, String> headers = null;
-    boolean withLastModfied = true;
-    boolean withCookies = true;
+    Map<String, String> headers;
     int cacheAge = 0;
-    CachedResponseManager cachedResponseManager = null;
-    FilterResponseWrapper fresponse = null;
-    if ("GET".equals(srequest.getMethod())) {
+    if (HttpConstants.METHOD_GET.equals(srequest.getMethod())) {
       headers = getHeaders(path);
-      if (headers != null ) {
-        sresponse.setDateHeader("Date", System.currentTimeMillis());
-        withLastModfied = !"unset".equals(headers.get(".lastmodified"));
-        withCookies = !"unset".equals(headers.get(".cookies"));
+      if (headers != null) {
         String cacheAgeValue = headers.get(".requestCache");
-        if ( cacheAgeValue != null ) {
+        if (cacheAgeValue != null) {
           cacheAge = Integer.parseInt(cacheAgeValue);
         }
-        
-        String expiresOffsetValue = headers.get(".expires");
-        if ( expiresOffsetValue != null ) {
-          long expiresOffset = Long.parseLong(expiresOffsetValue);
-          sresponse.setDateHeader("Expires", System.currentTimeMillis() + (expiresOffset * 1000L));
-        }
-        for(Entry<String, String> header : headers.entrySet() ) {
+
+        for (Entry<String, String> header : headers.entrySet()) {
           if (header.getKey().charAt(0) != '.') {
             sresponse.setHeader(header.getKey(), header.getValue());
           }
         }
       }
     }
-    if ( respCode > 0 ) {
-      sresponse.setHeader("X-CacheControlFilterCode", String.valueOf(respCode));
-      sresponse.setStatus(respCode);
-      sresponse.flushBuffer();
-    } else {
-      if ( cacheAge > 0 ) {
-        cachedResponseManager = new CachedResponseManager(srequest, cacheAge, getCache());
-        if ( cachedResponseManager.isValid() ) {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-hit", cacheKey);
-          cachedResponseManager.send(sresponse);
-          return;
-        }
-      }
-      if ( !withLastModfied || !withCookies || cachedResponseManager != null ) {
-        fresponse = new FilterResponseWrapper(sresponse, withLastModfied, withCookies, cachedResponseManager != null);
-      }
-      if ( fresponse != null ) {
-        chain.doFilter(request, fresponse);
-        if ( cachedResponseManager != null ) {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-save", cacheKey);
-          cachedResponseManager.save(fresponse.getResponseOperation());
-        } else {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-nosave", cacheKey);
-        }
-      } else {
-        chain.doFilter(request, response);
-      }
+
+    if (!responseWasFiltered(srequest, sresponse, chain, cacheAge)) {
+      chain.doFilter(request, response);
     }
-  }
 
-  private Cache<CachedResponse> getCache() {
-    return cacheManagerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE);
   }
-
 
   private Map<String, String> getHeaders(String path) {
 
@@ -235,7 +172,7 @@ public class CacheControlFilter implements Filter {
       // or a set of patterns for the subtree
       Map<Pattern, Map<String, String>> patterns = subPathPatterns.get(elements[0]);
       if (patterns != null) {
-        for (Entry<Pattern, Map<String,String>> p : patterns.entrySet()) {
+        for (Entry<Pattern, Map<String, String>> p : patterns.entrySet()) {
           if (p.getKey().matcher(path).matches()) {
             return p.getValue();
           }
@@ -247,7 +184,7 @@ public class CacheControlFilter implements Filter {
 
   /**
    * {@inheritDoc}
-   * 
+   *
    * @see javax.servlet.Filter#init(javax.servlet.FilterConfig)
    */
   public void init(FilterConfig filterConfig) throws ServletException {
@@ -285,20 +222,17 @@ public class CacheControlFilter implements Filter {
       rootPathPatterns = new HashMap<Pattern, Map<String, String>>();
     }
 
-    int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF),0);
+    int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF), 0);
 
-    disableForDevMode = PropertiesUtil.toBoolean(properties.get(DISABLE_CACHE_FOR_UI_DEV), false);
-    
-    bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
+    cache = cacheManagerService.getCache(CacheControlFilter.class.getName() + "-cache",
+        CacheScope.INSTANCE);
 
-    if ( disableForDevMode ) {
-      extHttpService.unregisterFilter(this);
-    } else {
-      extHttpService.registerFilter(this, ".*", null, filterPriority, null);
-    }
+    extHttpService.registerFilter(this, ".*", null, filterPriority, null);
+
 
   }
 
+  @SuppressWarnings({"UnusedParameters", "UnusedDeclaration"})
   @Deactivate
   public void deactivate(ComponentContext componentContext) {
     extHttpService.unregisterFilter(this);
@@ -306,12 +240,61 @@ public class CacheControlFilter implements Filter {
 
   private Map<String, String> toMap(int starting, String[] cp) {
     Map<String, String> map = new HashMap<String, String>();
-    for ( int i = starting; i < cp.length; i++ ) {
+    for (int i = starting; i < cp.length; i++) {
       String[] kv = StringUtils.split(cp[i], ":", 2);
       map.put(kv[0], kv[1]);
     }
     return map;
   }
 
+  private boolean responseWasFiltered(HttpServletRequest request, HttpServletResponse response,
+                                      FilterChain filterChain, int maxAge) throws IOException, ServletException {
+    if (!HttpConstants.METHOD_GET.equals(request.getMethod())) {
+      return false; // only GET is ever cacheable
+    }
+    if (maxAge <= 0) {
+      return false;
+    }
+
+    CachedResponse cachedResponse = getCachedResponse(request);
+
+    if (cachedResponse != null && cachedResponse.isValid()) {
+      TelemetryCounter.incrementValue("http", "CacheControlFilter-hit", getCacheKey(request));
+      cachedResponse.replay(response);
+      return true;
+    }
+
+    FilterResponseWrapper filterResponseWrapper = new FilterResponseWrapper(response, false, false, true);
+    filterChain.doFilter(request, filterResponseWrapper);
+    filterResponseWrapper.setDateHeader("Expires", System.currentTimeMillis() + (maxAge * 1000L));
+    saveCachedResponse(request, filterResponseWrapper.getResponseOperation(), maxAge);
+    return true;
+  }
+
+  private String getCacheKey(HttpServletRequest request) {
+    return request.getPathInfo() + "?" + request.getQueryString();
+  }
+
+  private CachedResponse getCachedResponse(HttpServletRequest request) {
+    CachedResponse cachedResponse;
+    cachedResponse = cache.get(getCacheKey(request));
+    if (cachedResponse != null && !cachedResponse.isValid()) {
+      cachedResponse = null;
+      cache.remove(getCacheKey(request));
+    }
+    return cachedResponse;
+  }
+
+  private void saveCachedResponse(HttpServletRequest request,
+                                  OperationResponseCapture responseOperation, int maxAge) {
+    try {
+      if (responseOperation.canCache()) {
+        cache.put(getCacheKey(request), new CachedResponse(responseOperation, maxAge));
+        TelemetryCounter.incrementValue("http", "CacheControlFilter-save", getCacheKey(request));
+      }
+    } catch (IOException e) {
+      LOGGER.info("Failed to save response in cache ", e);
+    }
+  }
 
 }
