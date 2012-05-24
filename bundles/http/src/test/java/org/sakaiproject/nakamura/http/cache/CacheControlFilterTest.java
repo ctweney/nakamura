@@ -17,6 +17,7 @@
  */
 package org.sakaiproject.nakamura.http.cache;
 
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -92,15 +93,14 @@ public class CacheControlFilterTest {
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
-        "root;.*(js|css)$;.expires:3456000;Cache-Control: max-age=43200 public;Vary:Accept-Encoding",
-        "root;.*html$;.expires:3456000;Cache-Control: max-age-43200 public;Vary:Accept-Encoding", 
-        "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;.expires:3456000;Cache-Control: max-age=43200 public;Vary:Accept-Encoding" 
+        "root;.*(js|css)$;maxAge:3456000",
+        "root;.*html$;maxAge:3456000",
+        "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;maxAge:3456000"
         });
     properties.put(CacheControlFilter.SAKAI_CACHE_PATHS, new String[] { 
-        "dev;.expires:3456000;Cache-Control: max-age=432000 public;Vary:Accept-Encoding", 
-        "devwidgets;.expires:3456000;Cache-Control:max-age=432000 public;Vary:Accept-Encoding",
-        "cacheable;.expires:3456000;.requestCache:3600;Cache-Control:max-age=432000 public;Vary:Accept-Encoding",
-        "p;Cache-Control:no-cache" });
+        "dev;maxAge:3456000",
+        "devwidgets;maxAge:3456000",
+        "cacheable;maxAge:3456000"});
     when(componentContext.getProperties()).thenReturn(properties);
     cacheControlFilter.extHttpService = extHttpService;
     cacheControlFilter.activate(componentContext);
@@ -249,7 +249,7 @@ public class CacheControlFilterTest {
     cacheControlFilter.doFilter(request, response, chain);
 
     if (expectHeader) {
-      verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
+      verify(response, Mockito.atLeastOnce()).setDateHeader(anyString(), anyLong());
     } else {
       verify(response, never()).addHeader(anyString(), anyString());
     }
