@@ -93,14 +93,14 @@ public class CacheControlFilterTest {
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
-        "root;.*(js|css)$;maxAge:3456000",
-        "root;.*html$;maxAge:3456000",
-        "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;maxAge:3456000"
+        "root;.*(js|css)$;3456000",
+        "root;.*html$;3456000",
+        "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;3456000"
         });
     properties.put(CacheControlFilter.SAKAI_CACHE_PATHS, new String[] { 
-        "dev;maxAge:3456000",
-        "devwidgets;maxAge:3456000",
-        "cacheable;maxAge:3456000"});
+        "dev;3456000",
+        "devwidgets;3456000",
+        "cacheable;3456000"});
     when(componentContext.getProperties()).thenReturn(properties);
     cacheControlFilter.extHttpService = extHttpService;
     cacheControlFilter.activate(componentContext);

@@ -28,6 +28,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
+import org.sakaiproject.nakamura.api.http.cache.CacheConfig;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -55,14 +56,14 @@ import javax.servlet.http.HttpServletResponse;
 @Properties(value = {
     @Property(name = "service.description", value = "Nakamura Cache-Control Filter"),
     @Property(name = "sakai.cache.paths", value = {
-        "dev;maxAge:900",
-        "devwidgets;maxAge:900"},
+        "dev;900",
+        "devwidgets;900"},
         description = "List of subpaths and max age for all content under subpath in seconds, setting to 0 makes it non cacheing"),
     @Property(name = "sakai.cache.patterns", value = {
-        "root;.*(js|css)$;maxAge:900",
-        "root;.*html$;maxAge:900",
-        "var;^/var/search/public/.*$;maxAge:900",
-        "var;^/var/widgets.json$;maxAge:900"},
+        "root;.*(js|css)$;900",
+        "root;.*html$;900",
+        "var;^/var/search/public/.*$;900",
+        "var;^/var/widgets.json$;900"},
         description = "List of path prefixes followed by a regex. If the prefix starts with a root: it means files in the root folder that match the pattern."),
     @Property(name = "service.vendor", value = "The Sakai Foundation")})
 public class CacheControlFilter implements Filter {
@@ -72,17 +73,17 @@ public class CacheControlFilter implements Filter {
   /**
    * map of expiry times for whole subtrees
    */
-  private Map<String, Map<String, String>> subPaths;
+  private Map<String, CacheConfig> subPaths;
 
   /**
    * map of patterns by subtree
    */
-  private Map<String, Map<Pattern, Map<String, String>>> subPathPatterns;
+  private Map<String, Map<Pattern, CacheConfig>> subPathPatterns;
 
   /**
    * list of patterns for the root resources
    */
-  private Map<Pattern, Map<String, String>> rootPathPatterns;
+  private Map<Pattern, CacheConfig> rootPathPatterns;
 
   static final String SAKAI_CACHE_PATTERNS = "sakai.cache.patterns";
 
@@ -122,15 +123,11 @@ public class CacheControlFilter implements Filter {
     HttpServletResponse sresponse = (HttpServletResponse) response;
     String path = srequest.getPathInfo();
 
-    Map<String, String> cacheConfig;
     int maxAge = 0;
     if (HttpConstants.METHOD_GET.equals(srequest.getMethod())) {
-      cacheConfig = getCacheConfig(path);
+      CacheConfig cacheConfig = getCacheConfig(path);
       if (cacheConfig != null) {
-        String maxAgeString = cacheConfig.get("maxAge");
-        if (maxAgeString != null) {
-          maxAge = Integer.parseInt(maxAgeString);
-        }
+        maxAge = cacheConfig.getMaxAge();
       }
     }
 
@@ -140,7 +137,7 @@ public class CacheControlFilter implements Filter {
 
   }
 
-  private Map<String, String> getCacheConfig(String path) {
+  private CacheConfig getCacheConfig(String path) {
 
     // get the Path and then the first 2 elements (2 so that we can tell if this is root
     // or not
@@ -149,7 +146,7 @@ public class CacheControlFilter implements Filter {
     if (elements.length == 0) { // odd request
       return null;
     } else if (elements.length == 1) { // root request eg /index.html
-      for (Entry<Pattern, Map<String, String>> p : rootPathPatterns.entrySet()) {
+      for (Entry<Pattern, CacheConfig> p : rootPathPatterns.entrySet()) {
         if (p.getKey().matcher(path).matches()) {
           return p.getValue();
         }
@@ -157,15 +154,15 @@ public class CacheControlFilter implements Filter {
     } else { // subtree //p/index.html
 
       // check if there is a subtree with a setting
-      Map<String, String> headers = subPaths.get(elements[0]);
-      if (headers != null) {
-        return headers;
+      CacheConfig subPathExactMatch = subPaths.get(elements[0]);
+      if (subPathExactMatch != null) {
+        return subPathExactMatch;
       }
 
       // or a set of patterns for the subtree
-      Map<Pattern, Map<String, String>> patterns = subPathPatterns.get(elements[0]);
+      Map<Pattern, CacheConfig> patterns = subPathPatterns.get(elements[0]);
       if (patterns != null) {
-        for (Entry<Pattern, Map<String, String>> p : patterns.entrySet()) {
+        for (Entry<Pattern, CacheConfig> p : patterns.entrySet()) {
           if (p.getKey().matcher(path).matches()) {
             return p.getValue();
           }
@@ -189,30 +186,33 @@ public class CacheControlFilter implements Filter {
     @SuppressWarnings("unchecked")
     Dictionary<String, Object> properties = componentContext.getProperties();
     String[] sakaiCachePaths = PropertiesUtil.toStringArray(properties.get(SAKAI_CACHE_PATHS));
-    subPaths = new HashMap<String, Map<String, String>>();
+    subPaths = new HashMap<String, CacheConfig>();
     if (sakaiCachePaths != null) {
       for (String sakaiCachePath : sakaiCachePaths) {
         String[] cp = StringUtils.split(sakaiCachePath, ';');
-        subPaths.put(cp[0], toMap(1, cp));
+        CacheConfig config = new CacheConfig(Integer.valueOf(cp[1]), cp[0], null);
+        subPaths.put(cp[0], config);
       }
     }
     String[] sakaiCachePatternPaths = PropertiesUtil.toStringArray(properties.get(SAKAI_CACHE_PATTERNS));
-    subPathPatterns = new HashMap<String, Map<Pattern, Map<String, String>>>();
+    subPathPatterns = new HashMap<String, Map<Pattern, CacheConfig>>();
     if (sakaiCachePatternPaths != null) {
       for (String sakaiCachePatternPath : sakaiCachePatternPaths) {
         String[] cp = StringUtils.split(sakaiCachePatternPath, ';');
         if (subPathPatterns.containsKey(cp[0])) {
-          subPathPatterns.get(cp[0]).put(Pattern.compile(cp[1]), toMap(2, cp));
+          CacheConfig config = new CacheConfig(Integer.valueOf(cp[2]), cp[0], Pattern.compile(cp[1]));
+          subPathPatterns.get(cp[0]).put(Pattern.compile(cp[1]), config);
         } else {
-          Map<Pattern, Map<String, String>> patternMap = new HashMap<Pattern, Map<String, String>>();
-          patternMap.put(Pattern.compile(cp[1]), toMap(2, cp));
+          Map<Pattern, CacheConfig> patternMap = new HashMap<Pattern, CacheConfig>();
+          CacheConfig config = new CacheConfig(Integer.valueOf(cp[2]), cp[0], Pattern.compile(cp[1]));
+          patternMap.put(Pattern.compile(cp[1]), config);
           subPathPatterns.put(cp[0], patternMap);
         }
       }
     }
     rootPathPatterns = subPathPatterns.get("root");
     if (rootPathPatterns == null) {
-      rootPathPatterns = new HashMap<Pattern, Map<String, String>>();
+      rootPathPatterns = new HashMap<Pattern, CacheConfig>();
     }
 
     int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF), 0);
@@ -229,15 +229,6 @@ public class CacheControlFilter implements Filter {
   @Deactivate
   public void deactivate(ComponentContext componentContext) {
     extHttpService.unregisterFilter(this);
-  }
-
-  private Map<String, String> toMap(int starting, String[] cp) {
-    Map<String, String> map = new HashMap<String, String>();
-    for (int i = starting; i < cp.length; i++) {
-      String[] kv = StringUtils.split(cp[i], ":", 2);
-      map.put(kv[0], kv[1]);
-    }
-    return map;
   }
 
   private boolean responseWasFiltered(HttpServletRequest request, HttpServletResponse response,
