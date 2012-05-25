@@ -56,7 +56,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CacheControlFilterTest {
+public class StaticContentResponseCacheTest {
 
   @Mock
   private SlingHttpServletRequest request;
@@ -68,7 +68,7 @@ public class CacheControlFilterTest {
   @Mock
   private FilterChain chain;
 
-  private CacheControlFilter cacheControlFilter;
+  private StaticContentResponseCache staticContentResponseCache;
 
   @Mock
   private ComponentContext componentContext;
@@ -87,30 +87,30 @@ public class CacheControlFilterTest {
 
   @Before
   public void setup() throws Exception {
-    cacheControlFilter = new CacheControlFilter();
-    cacheControlFilter.cacheManagerService = cacheMangerService;
-    when(cacheMangerService.getCache(CacheControlFilter.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
+    staticContentResponseCache = new StaticContentResponseCache();
+    staticContentResponseCache.cacheManagerService = cacheMangerService;
+    when(cacheMangerService.getCache(StaticContentResponseCache.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
-    properties.put(CacheControlFilter.SAKAI_CACHE_PATTERNS, new String[] {
+    properties.put(StaticContentResponseCache.SAKAI_CACHE_PATTERNS, new String[] {
         "root;.*(js|css)$;3456000",
         "root;.*html$;3456000",
         "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;3456000"
         });
-    properties.put(CacheControlFilter.SAKAI_CACHE_PATHS, new String[] { 
+    properties.put(StaticContentResponseCache.SAKAI_CACHE_PATHS, new String[] {
         "dev;3456000",
         "devwidgets;3456000",
         "cacheable;3456000"});
     when(componentContext.getProperties()).thenReturn(properties);
-    cacheControlFilter.extHttpService = extHttpService;
-    cacheControlFilter.activate(componentContext);
-    cacheControlFilter.init(filterConfig);
+    staticContentResponseCache.extHttpService = extHttpService;
+    staticContentResponseCache.activate(componentContext);
+    staticContentResponseCache.init(filterConfig);
 
   }
   
   @After
   public void teardown() {
-    cacheControlFilter.destroy();
+    staticContentResponseCache.destroy();
   }
 
   @Test
@@ -157,7 +157,7 @@ public class CacheControlFilterTest {
     };
     when(response.getOutputStream()).thenReturn(servletOutputStream);
 
-    cacheControlFilter.doFilter(request, response, new TFilter(true));
+    staticContentResponseCache.doFilter(request, response, new TFilter(true));
 
     verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
     verify(cache).put(Mockito.eq("/cacheable/config.json?null"), Matchers.any(CachedResponse.class));
@@ -184,7 +184,7 @@ public class CacheControlFilterTest {
     CachedResponse cachedResponse  = populateResponseCapture(true);
     when(cache.get("/cacheable/config.json?null")).thenReturn(cachedResponse);
 
-    cacheControlFilter.doFilter(request, response, null);
+    staticContentResponseCache.doFilter(request, response, null);
 
     verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
     
@@ -232,7 +232,7 @@ public class CacheControlFilterTest {
     PrintWriter printWriter = new PrintWriter(stringWriter);
     when(response.getWriter()).thenReturn(printWriter);
 
-    cacheControlFilter.doFilter(request, response, new TFilter(false));
+    staticContentResponseCache.doFilter(request, response, new TFilter(false));
 
     verify(response, Mockito.atLeastOnce()).setHeader(anyString(), anyString());
     
@@ -246,7 +246,7 @@ public class CacheControlFilterTest {
     when(request.getPathInfo()).thenReturn(path);
     
     
-    cacheControlFilter.doFilter(request, response, chain);
+    staticContentResponseCache.doFilter(request, response, chain);
 
     if (expectHeader) {
       verify(response, Mockito.atLeastOnce()).setDateHeader(anyString(), anyLong());

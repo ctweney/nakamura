@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -56,19 +55,19 @@ import javax.servlet.http.HttpServletResponse;
 @Properties(value = {
     @Property(name = "service.description", value = "Nakamura Cache-Control Filter"),
     @Property(name = "sakai.cache.paths", value = {
-        "dev;900",
-        "devwidgets;900"},
+        "dev;31536000",
+        "devwidgets;31536000"},
         description = "List of subpaths and max age for all content under subpath in seconds, setting to 0 makes it non cacheing"),
     @Property(name = "sakai.cache.patterns", value = {
-        "root;.*(js|css)$;900",
-        "root;.*html$;900",
+        "root;.*(js|css)$;172800",
+        "root;.*html$;172800",
         "var;^/var/search/public/.*$;900",
-        "var;^/var/widgets.json$;900"},
+        "var;^/var/widgets.json$;172800"},
         description = "List of path prefixes followed by a regex. If the prefix starts with a root: it means files in the root folder that match the pattern."),
     @Property(name = "service.vendor", value = "The Sakai Foundation")})
-public class CacheControlFilter implements Filter {
+public class StaticContentResponseCache implements Filter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CacheControlFilter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StaticContentResponseCache.class);
 
   /**
    * map of expiry times for whole subtrees
@@ -123,18 +122,13 @@ public class CacheControlFilter implements Filter {
     HttpServletResponse sresponse = (HttpServletResponse) response;
     String path = srequest.getPathInfo();
 
-    int maxAge = 0;
     if (HttpConstants.METHOD_GET.equals(srequest.getMethod())) {
-      CacheConfig cacheConfig = getCacheConfig(path);
-      if (cacheConfig != null) {
-        maxAge = cacheConfig.getMaxAge();
+      if (!responseWasFiltered(srequest, sresponse, chain, getCacheConfig(path))) {
+        chain.doFilter(request, response);
       }
-    }
-
-    if (!responseWasFiltered(srequest, sresponse, chain, maxAge)) {
+    } else {
       chain.doFilter(request, response);
     }
-
   }
 
   private CacheConfig getCacheConfig(String path) {
@@ -217,7 +211,7 @@ public class CacheControlFilter implements Filter {
 
     int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF), 0);
 
-    cache = cacheManagerService.getCache(CacheControlFilter.class.getName() + "-cache",
+    cache = cacheManagerService.getCache(StaticContentResponseCache.class.getName() + "-cache",
         CacheScope.INSTANCE);
 
     extHttpService.registerFilter(this, ".*", null, filterPriority, null);
@@ -229,29 +223,30 @@ public class CacheControlFilter implements Filter {
   @Deactivate
   public void deactivate(ComponentContext componentContext) {
     extHttpService.unregisterFilter(this);
+    cache.clear();
   }
 
   private boolean responseWasFiltered(HttpServletRequest request, HttpServletResponse response,
-                                      FilterChain filterChain, int maxAge) throws IOException, ServletException {
-    if (!HttpConstants.METHOD_GET.equals(request.getMethod())) {
-      return false; // only GET is ever cacheable
-    }
-    if (maxAge <= 0) {
-      return false;
+                                      FilterChain filterChain, CacheConfig cacheConfig)
+      throws IOException, ServletException {
+    if (!HttpConstants.METHOD_GET.equals(request.getMethod()) || cacheConfig == null || cacheConfig.getMaxAge() <= 0) {
+      return false; // only GET is ever cacheable, and cacheConfig must exist and have a nonzero maxAge
     }
 
     CachedResponse cachedResponse = getCachedResponse(request);
 
     if (cachedResponse != null && cachedResponse.isValid()) {
-      TelemetryCounter.incrementValue("http", "CacheControlFilter-hit", getCacheKey(request));
+      TelemetryCounter.incrementValue("http", "StaticContentResponseCache-hit", getCacheKey(request));
       cachedResponse.replay(response);
       return true;
     }
 
+    Long expires = System.currentTimeMillis() + (cacheConfig.getMaxAge() * 1000L);
+    response.setDateHeader("Expires", expires);
     FilterResponseWrapper filterResponseWrapper = new FilterResponseWrapper(response, false, false, true);
     filterChain.doFilter(request, filterResponseWrapper);
-    filterResponseWrapper.setDateHeader("Expires", System.currentTimeMillis() + (maxAge * 1000L));
-    saveCachedResponse(request, filterResponseWrapper.getResponseOperation(), maxAge);
+    filterResponseWrapper.setDateHeader("Expires", expires);
+    saveCachedResponse(request, filterResponseWrapper.getResponseOperation(), cacheConfig);
     return true;
   }
 
@@ -261,20 +256,22 @@ public class CacheControlFilter implements Filter {
 
   private CachedResponse getCachedResponse(HttpServletRequest request) {
     CachedResponse cachedResponse;
-    cachedResponse = cache.get(getCacheKey(request));
+    String key = getCacheKey(request);
+    cachedResponse = cache.get(key);
     if (cachedResponse != null && !cachedResponse.isValid()) {
       cachedResponse = null;
-      cache.remove(getCacheKey(request));
+      cache.remove(key);
     }
     return cachedResponse;
   }
 
   private void saveCachedResponse(HttpServletRequest request,
-                                  OperationResponseCapture responseOperation, int maxAge) {
+                                  OperationResponseCapture responseOperation, CacheConfig cacheConfig) {
     try {
       if (responseOperation.canCache()) {
-        cache.put(getCacheKey(request), new CachedResponse(responseOperation, maxAge));
-        TelemetryCounter.incrementValue("http", "CacheControlFilter-save", getCacheKey(request));
+        String key = getCacheKey(request);
+        cache.put(key, new CachedResponse(responseOperation, cacheConfig.getMaxAge()));
+        TelemetryCounter.incrementValue("http", "StaticContentResponseCache-save", key);
       }
     } catch (IOException e) {
       LOGGER.info("Failed to save response in cache ", e);
