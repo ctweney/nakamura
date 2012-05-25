@@ -22,14 +22,15 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.sling.api.servlets.HttpConstants;
-import org.mortbay.jetty.HttpHeaderValues;
 import org.osgi.service.component.ComponentContext;
 import org.sakaiproject.nakamura.api.http.cache.ETagResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
+import org.sakaiproject.nakamura.util.StringUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -79,8 +80,15 @@ public class ETagResponseCacheImpl implements ETagResponseCache {
   }
 
   private String buildETag(HttpServletRequest request) {
-    return request.getRemoteUser() + ':' + request.getPathInfo() + ':' + request.getQueryString()
+    String rawTag = request.getRemoteUser() + ':' + request.getPathInfo() + ':' + request.getQueryString()
         + ':' + System.nanoTime();
+    try {
+      return StringUtils.sha1Hash(rawTag);
+    } catch (UnsupportedEncodingException e) {
+      return rawTag;
+    } catch (NoSuchAlgorithmException e) {
+      return rawTag;
+    }
   }
 
   String buildCacheKey(String cacheCategory, String userID) {
