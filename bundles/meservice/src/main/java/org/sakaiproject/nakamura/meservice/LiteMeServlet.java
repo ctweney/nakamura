@@ -198,7 +198,9 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
   @Override
   protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
       throws ServletException, IOException {
-    LOG.info("ETag for /system/me is : " + eTagResponseCache.getETag(request));
+    if (eTagResponseCache.clientHasFreshETag(UserConstants.USER_RESPONSE_CACHE, request, response)) {
+      return;
+    }
     TelemetryCounter.incrementValue("meservice", "LiteMeServlet", "/system/me");
     try {
       response.setContentType("application/json");
@@ -260,7 +262,7 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
 
       writer.endObject();
 
-      eTagResponseCache.recordResponse(request);
+      eTagResponseCache.recordResponse(UserConstants.USER_RESPONSE_CACHE, request, response);
 
     } catch (JSONException e) {
       LOG.error("Failed to create proper JSON response in /system/me", e);

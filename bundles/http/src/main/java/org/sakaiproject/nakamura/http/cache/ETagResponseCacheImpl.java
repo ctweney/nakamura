@@ -22,6 +22,8 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.mortbay.jetty.HttpHeaderValues;
 import org.osgi.service.component.ComponentContext;
 import org.sakaiproject.nakamura.api.http.cache.ETagResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
@@ -30,6 +32,7 @@ import org.sakaiproject.nakamura.api.memory.CacheScope;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Component
 @Service
@@ -40,6 +43,7 @@ public class ETagResponseCacheImpl implements ETagResponseCache {
 
   private Cache<String> cache;
 
+  @SuppressWarnings("UnusedParameters")
   @Activate
   protected void activate(ComponentContext componentContext) throws ServletException {
     cache = cacheManagerService.getCache(ETagResponseCache.class.getName() + "-cache",
@@ -47,33 +51,40 @@ public class ETagResponseCacheImpl implements ETagResponseCache {
   }
 
   @Override
-  public void recordResponse(HttpServletRequest request) {
-    String key = buildCacheKey(request);
-    if (!cache.containsKey(key)) {
-      cache.put(buildCacheKey(request), buildETag(request));
+  public void recordResponse(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
+    String key = buildCacheKey(cacheCategory, request.getRemoteUser());
+    String etag = cache.get(key);
+    if (etag == null) {
+      etag = buildETag(request);
+      cache.put(key, etag);
     }
+    response.setHeader("ETag", etag);
   }
 
   @Override
-  public void invalidate(HttpServletRequest request) {
-    cache.remove(buildCacheKey(request));
+  public void invalidate(String cacheCategory, String userID) {
+    cache.remove(buildCacheKey(cacheCategory, userID));
   }
 
   @Override
-  public String getETag(HttpServletRequest request) {
-    return cache.get(buildCacheKey(request));
+  public boolean clientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
+    // examine client request for If-None-Match http header. compare that against the etag.
+    String clientEtag = request.getHeader("If-None-Match");
+    String serverEtag = cache.get(buildCacheKey(cacheCategory, request.getRemoteUser()));
+    if (clientEtag != null && clientEtag.equals(serverEtag)) {
+      response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+      return true;
+    }
+    return false;
   }
 
   private String buildETag(HttpServletRequest request) {
-    StringBuilder ret = new StringBuilder(request.getRemoteUser());
-    ret.append('-').append(request.getPathInfo()).append('-').append(System.nanoTime());
-    return ret.toString();
+    return request.getRemoteUser() + ':' + request.getPathInfo() + ':' + request.getQueryString()
+        + ':' + System.nanoTime();
   }
 
-  String buildCacheKey(HttpServletRequest request) {
-    StringBuilder ret = new StringBuilder(request.getRemoteUser());
-    ret.append('-').append(request.getPathInfo());
-    return ret.toString();
+  String buildCacheKey(String cacheCategory, String userID) {
+    return userID + ':' + cacheCategory;
   }
 
 }

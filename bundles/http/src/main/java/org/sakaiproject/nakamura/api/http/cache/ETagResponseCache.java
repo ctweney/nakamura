@@ -19,13 +19,14 @@
 package org.sakaiproject.nakamura.api.http.cache;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public interface ETagResponseCache {
 
-  void recordResponse(HttpServletRequest request);
+  void recordResponse(String cacheCategory, HttpServletRequest request, HttpServletResponse response);
 
-  void invalidate(HttpServletRequest request);
+  void invalidate(String cacheCategory, String userID);
 
-  String getETag(HttpServletRequest request);
+  boolean clientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response);
 
 }

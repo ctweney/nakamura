@@ -39,12 +39,16 @@ import org.sakaiproject.nakamura.api.memory.CacheScope;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ETagResponseCacheImplTest {
 
   @Mock
   private HttpServletRequest request;
+
+  @Mock
+  private HttpServletResponse response;
 
   @Mock
   private Cache<Object> cache;
@@ -55,25 +59,50 @@ public class ETagResponseCacheImplTest {
   public void setup() throws ServletException {
     eTagResponseCache = new ETagResponseCacheImpl();
     eTagResponseCache.cacheManagerService = mock(CacheManagerService.class);
-    when(eTagResponseCache.cacheManagerService.getCache(ETagResponseCache.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
+    when(eTagResponseCache.cacheManagerService.getCache(ETagResponseCache.class.getName() + "-cache", CacheScope.INSTANCE)).thenReturn(cache);
     eTagResponseCache.activate(null);
-
   }
 
   @Test
-  public void recordResponse() {
+  public void recordResponseAndInvalidate() {
+    String cat = "TestCat";
+    String user = "joe";
     when(request.getPathInfo()).thenReturn("/foo/bar/baz");
-    when(request.getRemoteUser()).thenReturn("joe");
+    when(request.getRemoteUser()).thenReturn(user);
 
-    when(cache.containsKey(eTagResponseCache.buildCacheKey(request))).thenReturn(false);
-    eTagResponseCache.recordResponse(request);
-    when(cache.containsKey(eTagResponseCache.buildCacheKey(request))).thenReturn(true);
-    eTagResponseCache.recordResponse(request);
-    verify(cache, times(2)).containsKey(eTagResponseCache.buildCacheKey(request));
+    when(cache.containsKey(eTagResponseCache.buildCacheKey(cat, user))).thenReturn(false);
+    eTagResponseCache.recordResponse(cat, request, response);
+    when(cache.get(eTagResponseCache.buildCacheKey(cat, user))).thenReturn("foo");
+    eTagResponseCache.recordResponse(cat, request, response);
+    verify(cache, times(2)).get(anyString());
     verify(cache, atMost(1)).put(anyString(), anyString());
-
-    eTagResponseCache.invalidate(request);
+    verify(response, times(2)).setHeader(anyString(), anyString());
+    eTagResponseCache.invalidate(cat, user);
     verify(cache).remove(anyString());
+  }
+
+  @Test
+  public void clientHasFreshETag() {
+    when(request.getHeader("If-None-Match")).thenReturn("myetag");
+    when(cache.get(anyString())).thenReturn("myetag");
+    Assert.assertTrue(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    verify(response).setStatus(304);
+  }
+
+  @Test
+  public void clientLacksETag() {
+    when(request.getHeader("If-None-Match")).thenReturn(null);
+    when(cache.get(anyString())).thenReturn("myetag");
+    Assert.assertFalse(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    verify(response, never()).setStatus(304);
+  }
+
+  @Test
+  public void clientHasOldETag() {
+    when(request.getHeader("If-None-Match")).thenReturn("oldetag");
+    when(cache.get(anyString())).thenReturn("myetag");
+    Assert.assertFalse(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    verify(response, never()).setStatus(304);
   }
 
 }
