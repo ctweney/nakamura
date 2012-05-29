@@ -94,6 +94,14 @@ public class StaticContentResponseCache implements Filter {
   @Property(intValue = 5)
   private static final String FILTER_PRIORITY_CONF = "filter.priority";
 
+  @Property(boolValue = false, label = "Disable Cache Filter",
+      description = "When selected, disables the caching filter completely. Disabling cache is not recommended in a production environment.")
+  private static final String DISABLE_CACHE_FOR_UI_DEV = "disable.cache.for.dev.mode";
+
+  @Property(boolValue = true, label = "Bypass Cache for http://localhost",
+      description = "When selected, caching will be disabled for 'localhost' and '127.0.0.1', but enabled for all other hosts. Useful for developers.")
+  private static final String BYPASS_CACHE_FOR_LOCALHOST = "bypass.cache.for.localhost";
+
   @Reference
   protected ExtHttpService extHttpService;
 
@@ -101,6 +109,8 @@ public class StaticContentResponseCache implements Filter {
   protected CacheManagerService cacheManagerService;
 
   private Cache<CachedResponse> cache;
+
+  private boolean bypassForLocalhost;
 
   /**
    * {@inheritDoc}
@@ -120,6 +130,14 @@ public class StaticContentResponseCache implements Filter {
       throws IOException, ServletException {
     HttpServletRequest srequest = (HttpServletRequest) request;
     HttpServletResponse sresponse = (HttpServletResponse) response;
+
+    if (bypassForLocalhost && ("localhost".equals(request.getServerName())
+        || "127.0.0.1".equals(request.getServerName()))) {
+      // bypass for developer convenience
+      chain.doFilter(request, response);
+      return;
+    }
+
     String path = srequest.getPathInfo();
 
     if (HttpConstants.METHOD_GET.equals(srequest.getMethod())) {
@@ -210,12 +228,17 @@ public class StaticContentResponseCache implements Filter {
     }
 
     int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF), 0);
+    boolean disableForDevMode = PropertiesUtil.toBoolean(properties.get(DISABLE_CACHE_FOR_UI_DEV), false);
+    bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
 
     cache = cacheManagerService.getCache(StaticContentResponseCache.class.getName() + "-cache",
         CacheScope.INSTANCE);
 
-    extHttpService.registerFilter(this, ".*", null, filterPriority, null);
-
+    if (disableForDevMode) {
+      extHttpService.unregisterFilter(this);
+    } else {
+      extHttpService.registerFilter(this, ".*", null, filterPriority, null);
+    }
 
   }
 

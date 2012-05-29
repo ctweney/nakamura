@@ -20,8 +20,11 @@ package org.sakaiproject.nakamura.http.cache;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
 import org.sakaiproject.nakamura.api.http.cache.DynamicContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
@@ -31,28 +34,57 @@ import org.sakaiproject.nakamura.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Dictionary;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-@Component
+@Component(immediate = true, metatype = true, enabled = true)
+@Properties(value = {
+    @Property(name = "service.description", value = "Nakamura Dynamic Response Cache"),
+    @Property(name = "service.vendor", value = "The Sakai Foundation")})
 @Service
 public class DynamicContentResponseCacheImpl implements DynamicContentResponseCache {
+
+  @Property(boolValue = false, label = "Disable Dynamic Content Cache",
+      description = "When selected, disables the dynamic content cache completely. Disabling cache is not recommended in a production environment.")
+  static final String DISABLE_CACHE_FOR_UI_DEV = "disable.cache.for.dev.mode";
+
+  @Property(boolValue = true, label = "Bypass Dynamic Content Cache for http://localhost",
+      description = "When selected, dynamic content caching will be disabled for 'localhost' and '127.0.0.1', but enabled for all other hosts. Useful for developers.")
+  static final String BYPASS_CACHE_FOR_LOCALHOST = "bypass.cache.for.localhost";
 
   @Reference
   protected CacheManagerService cacheManagerService;
 
   private Cache<String> cache;
 
+  private boolean disableForDevMode;
+
+  private boolean bypassForLocalhost;
+
   @SuppressWarnings("UnusedParameters")
   @Activate
   protected void activate(ComponentContext componentContext) throws ServletException {
+    @SuppressWarnings("unchecked")
+    Dictionary<String, Object> properties = componentContext.getProperties();
+
     cache = cacheManagerService.getCache(DynamicContentResponseCache.class.getName() + "-cache",
         CacheScope.INSTANCE);
+
+    disableForDevMode = PropertiesUtil.toBoolean(properties.get(DISABLE_CACHE_FOR_UI_DEV), false);
+    bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
+  }
+
+  public void deactivate(ComponentContext componentContext) {
+    cache.clear();
   }
 
   @Override
   public void recordResponse(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
+    if (isDisabled(request)) {
+      return;
+    }
     String key = buildCacheKey(cacheCategory, request.getRemoteUser());
     String etag = cache.get(key);
     if (etag == null) {
@@ -64,11 +96,17 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
 
   @Override
   public void invalidate(String cacheCategory, String userID) {
+    if (disableForDevMode) {
+      return;
+    }
     cache.remove(buildCacheKey(cacheCategory, userID));
   }
 
   @Override
   public boolean clientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
+    if (isDisabled(request)) {
+      return false;
+    }
     // examine client request for If-None-Match http header. compare that against the etag.
     String clientEtag = request.getHeader("If-None-Match");
     String serverEtag = cache.get(buildCacheKey(cacheCategory, request.getRemoteUser()));
@@ -95,4 +133,8 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     return userID + ':' + cacheCategory;
   }
 
+  private boolean isDisabled(HttpServletRequest request) {
+    return disableForDevMode || (bypassForLocalhost && ("localhost".equals(request.getServerName())
+        || "127.0.0.1".equals(request.getServerName())));
+  }
 }

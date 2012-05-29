@@ -32,11 +32,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.osgi.service.component.ComponentContext;
 import org.sakaiproject.nakamura.api.http.cache.DynamicContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -51,6 +54,9 @@ public class DynamicContentResponseCacheImplTest {
   private HttpServletResponse response;
 
   @Mock
+  private ComponentContext componentContext;
+
+  @Mock
   private Cache<Object> cache;
 
   private DynamicContentResponseCacheImpl dynamicContentResponseCache;
@@ -60,7 +66,12 @@ public class DynamicContentResponseCacheImplTest {
     dynamicContentResponseCache = new DynamicContentResponseCacheImpl();
     dynamicContentResponseCache.cacheManagerService = mock(CacheManagerService.class);
     when(dynamicContentResponseCache.cacheManagerService.getCache(DynamicContentResponseCache.class.getName() + "-cache", CacheScope.INSTANCE)).thenReturn(cache);
-    dynamicContentResponseCache.activate(null);
+
+
+    Dictionary<String, Object> properties = new Hashtable<String, Object>();
+    when(componentContext.getProperties()).thenReturn(properties);
+
+    dynamicContentResponseCache.activate(componentContext);
   }
 
   @Test
