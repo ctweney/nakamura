@@ -29,30 +29,35 @@ import javax.servlet.http.HttpServletResponse;
 public interface DynamicContentResponseCache {
 
   /**
-   * Record this response in the cache. Call this method just before sending out a response
-   * that you want to be cached.
+   * Record this response in the cache and write the ETag to the response.
+   * Call this method just before sending out a response that you want to be cached. This method
+   * modifies the passed response to set the ETag header.
+   *
    * @param cacheCategory The application category of the cache, eg. "User Info"
-   * @param request The request to use as the basis for a cache key
-   * @param response The response to cache
+   * @param request       The request to use as the basis for a cache key
+   * @param response      The response to cache
    */
   void recordResponse(String cacheCategory, HttpServletRequest request, HttpServletResponse response);
 
   /**
    * Invalidates all cache entries for a particular user in a particular cache category.
+   *
    * @param cacheCategory The application category of the cache, eg. "User Info"
-   * @param userID The userID to invalidate.
+   * @param userID        The userID to invalidate.
    */
   void invalidate(String cacheCategory, String userID);
 
   /**
-   * Returns true AND sets http status 304 on the response if the client has presented a fresh
+   * Returns true and sets http status 304 on the response if the client has presented a fresh
    * ETag on the request. Examines the request's If-None-Match header for an ETag that we have
-   * cached previously.
+   * cached previously. This method modifies the passed response if a fresh ETag is presented.
+   *
    * @param cacheCategory The application category of the cache, eg. "User Info"
-   * @param request The request to use as the basis for a cache key
-   * @param response The response to cache. If it's a cache hit, response status will be set to 304.
+   * @param request       The request to use as the basis for a cache key
+   * @param response      The response to cache. If it's a cache hit, response status will be set to 304.
    * @return True if response was set to 304 and the user has hit the cache; false otherwise.
    */
-  boolean clientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response);
+  boolean send304WhenClientHasFreshETag(String cacheCategory, HttpServletRequest request,
+                                        HttpServletResponse response);
 
 }

@@ -96,7 +96,7 @@ public class DynamicContentResponseCacheImplTest {
   public void clientHasFreshETag() {
     when(request.getHeader("If-None-Match")).thenReturn("myetag");
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertTrue(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertTrue(dynamicContentResponseCache.send304WhenClientHasFreshETag("cat", request, response));
     verify(response).setStatus(304);
   }
 
@@ -104,7 +104,7 @@ public class DynamicContentResponseCacheImplTest {
   public void clientLacksETag() {
     when(request.getHeader("If-None-Match")).thenReturn(null);
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertFalse(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertFalse(dynamicContentResponseCache.send304WhenClientHasFreshETag("cat", request, response));
     verify(response, never()).setStatus(304);
   }
 
@@ -112,7 +112,7 @@ public class DynamicContentResponseCacheImplTest {
   public void clientHasOldETag() {
     when(request.getHeader("If-None-Match")).thenReturn("oldetag");
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertFalse(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertFalse(dynamicContentResponseCache.send304WhenClientHasFreshETag("cat", request, response));
     verify(response, never()).setStatus(304);
   }
 

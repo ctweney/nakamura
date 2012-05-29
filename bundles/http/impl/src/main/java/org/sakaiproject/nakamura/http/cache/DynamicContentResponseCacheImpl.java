@@ -77,7 +77,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
   }
 
-  @SuppressWarnings("UnusedParameters")
+  @SuppressWarnings({"UnusedParameters", "UnusedDeclaration"})
   public void deactivate(ComponentContext componentContext) {
     cache.clear();
   }
@@ -107,7 +107,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
   }
 
   @Override
-  public boolean clientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
+  public boolean send304WhenClientHasFreshETag(String cacheCategory, HttpServletRequest request, HttpServletResponse response) {
     if (isDisabled(request)) {
       return false;
     }

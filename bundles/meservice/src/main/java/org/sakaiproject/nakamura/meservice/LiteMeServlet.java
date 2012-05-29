@@ -198,7 +198,7 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
   @Override
   protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
       throws ServletException, IOException {
-    if (dynamicContentResponseCache.clientHasFreshETag(UserConstants.USER_RESPONSE_CACHE, request, response)) {
+    if (dynamicContentResponseCache.send304WhenClientHasFreshETag(UserConstants.USER_RESPONSE_CACHE, request, response)) {
       return;
     }
     TelemetryCounter.incrementValue("meservice", "LiteMeServlet", "/system/me");
