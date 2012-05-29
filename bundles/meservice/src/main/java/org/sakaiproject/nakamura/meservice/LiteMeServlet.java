@@ -48,7 +48,7 @@ import org.sakaiproject.nakamura.api.doc.ServiceDocumentation;
 import org.sakaiproject.nakamura.api.doc.ServiceMethod;
 import org.sakaiproject.nakamura.api.doc.ServiceParameter;
 import org.sakaiproject.nakamura.api.doc.ServiceResponse;
-import org.sakaiproject.nakamura.api.http.cache.ETagResponseCache;
+import org.sakaiproject.nakamura.api.http.cache.DynamicContentResponseCache;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -178,7 +178,7 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
   protected BasicUserInfoService basicUserInfoService;
 
   @Reference
-  protected ETagResponseCache eTagResponseCache;
+  protected DynamicContentResponseCache dynamicContentResponseCache;
 
   private String defaultLanguage;
   private String defaultCountry;
@@ -198,7 +198,7 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
   @Override
   protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
       throws ServletException, IOException {
-    if (eTagResponseCache.clientHasFreshETag(UserConstants.USER_RESPONSE_CACHE, request, response)) {
+    if (dynamicContentResponseCache.clientHasFreshETag(UserConstants.USER_RESPONSE_CACHE, request, response)) {
       return;
     }
     TelemetryCounter.incrementValue("meservice", "LiteMeServlet", "/system/me");
@@ -262,7 +262,7 @@ public class LiteMeServlet extends SlingSafeMethodsServlet {
 
       writer.endObject();
 
-      eTagResponseCache.recordResponse(UserConstants.USER_RESPONSE_CACHE, request, response);
+      dynamicContentResponseCache.recordResponse(UserConstants.USER_RESPONSE_CACHE, request, response);
 
     } catch (JSONException e) {
       LOG.error("Failed to create proper JSON response in /system/me", e);

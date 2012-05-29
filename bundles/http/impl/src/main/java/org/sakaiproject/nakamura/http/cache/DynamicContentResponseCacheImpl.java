@@ -23,7 +23,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.osgi.service.component.ComponentContext;
-import org.sakaiproject.nakamura.api.http.cache.ETagResponseCache;
+import org.sakaiproject.nakamura.api.http.cache.DynamicContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -37,7 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 
 @Component
 @Service
-public class ETagResponseCacheImpl implements ETagResponseCache {
+public class DynamicContentResponseCacheImpl implements DynamicContentResponseCache {
 
   @Reference
   protected CacheManagerService cacheManagerService;
@@ -47,7 +47,7 @@ public class ETagResponseCacheImpl implements ETagResponseCache {
   @SuppressWarnings("UnusedParameters")
   @Activate
   protected void activate(ComponentContext componentContext) throws ServletException {
-    cache = cacheManagerService.getCache(ETagResponseCache.class.getName() + "-cache",
+    cache = cacheManagerService.getCache(DynamicContentResponseCache.class.getName() + "-cache",
         CacheScope.INSTANCE);
   }
 

@@ -32,7 +32,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.sakaiproject.nakamura.api.http.cache.ETagResponseCache;
+import org.sakaiproject.nakamura.api.http.cache.DynamicContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -42,7 +42,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ETagResponseCacheImplTest {
+public class DynamicContentResponseCacheImplTest {
 
   @Mock
   private HttpServletRequest request;
@@ -53,14 +53,14 @@ public class ETagResponseCacheImplTest {
   @Mock
   private Cache<Object> cache;
 
-  private ETagResponseCacheImpl eTagResponseCache;
+  private DynamicContentResponseCacheImpl dynamicContentResponseCache;
 
   @Before
   public void setup() throws ServletException {
-    eTagResponseCache = new ETagResponseCacheImpl();
-    eTagResponseCache.cacheManagerService = mock(CacheManagerService.class);
-    when(eTagResponseCache.cacheManagerService.getCache(ETagResponseCache.class.getName() + "-cache", CacheScope.INSTANCE)).thenReturn(cache);
-    eTagResponseCache.activate(null);
+    dynamicContentResponseCache = new DynamicContentResponseCacheImpl();
+    dynamicContentResponseCache.cacheManagerService = mock(CacheManagerService.class);
+    when(dynamicContentResponseCache.cacheManagerService.getCache(DynamicContentResponseCache.class.getName() + "-cache", CacheScope.INSTANCE)).thenReturn(cache);
+    dynamicContentResponseCache.activate(null);
   }
 
   @Test
@@ -70,14 +70,14 @@ public class ETagResponseCacheImplTest {
     when(request.getPathInfo()).thenReturn("/foo/bar/baz");
     when(request.getRemoteUser()).thenReturn(user);
 
-    when(cache.containsKey(eTagResponseCache.buildCacheKey(cat, user))).thenReturn(false);
-    eTagResponseCache.recordResponse(cat, request, response);
-    when(cache.get(eTagResponseCache.buildCacheKey(cat, user))).thenReturn("foo");
-    eTagResponseCache.recordResponse(cat, request, response);
+    when(cache.containsKey(dynamicContentResponseCache.buildCacheKey(cat, user))).thenReturn(false);
+    dynamicContentResponseCache.recordResponse(cat, request, response);
+    when(cache.get(dynamicContentResponseCache.buildCacheKey(cat, user))).thenReturn("foo");
+    dynamicContentResponseCache.recordResponse(cat, request, response);
     verify(cache, times(2)).get(anyString());
     verify(cache, atMost(1)).put(anyString(), anyString());
     verify(response, times(2)).setHeader(anyString(), anyString());
-    eTagResponseCache.invalidate(cat, user);
+    dynamicContentResponseCache.invalidate(cat, user);
     verify(cache).remove(anyString());
   }
 
@@ -85,7 +85,7 @@ public class ETagResponseCacheImplTest {
   public void clientHasFreshETag() {
     when(request.getHeader("If-None-Match")).thenReturn("myetag");
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertTrue(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertTrue(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
     verify(response).setStatus(304);
   }
 
@@ -93,7 +93,7 @@ public class ETagResponseCacheImplTest {
   public void clientLacksETag() {
     when(request.getHeader("If-None-Match")).thenReturn(null);
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertFalse(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertFalse(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
     verify(response, never()).setStatus(304);
   }
 
@@ -101,7 +101,7 @@ public class ETagResponseCacheImplTest {
   public void clientHasOldETag() {
     when(request.getHeader("If-None-Match")).thenReturn("oldetag");
     when(cache.get(anyString())).thenReturn("myetag");
-    Assert.assertFalse(eTagResponseCache.clientHasFreshETag("cat", request, response));
+    Assert.assertFalse(dynamicContentResponseCache.clientHasFreshETag("cat", request, response));
     verify(response, never()).setStatus(304);
   }
 
