@@ -31,6 +31,7 @@ import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
 import org.sakaiproject.nakamura.util.StringUtils;
+import org.sakaiproject.nakamura.util.telemetry.TelemetryCounter;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
@@ -76,6 +77,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
   }
 
+  @SuppressWarnings("UnusedParameters")
   public void deactivate(ComponentContext componentContext) {
     cache.clear();
   }
@@ -90,6 +92,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     if (etag == null) {
       etag = buildETag(request);
       cache.put(key, etag);
+      TelemetryCounter.incrementValue("http", "DynamicContentResponseCache-save", cacheCategory);
     }
     response.setHeader("ETag", etag);
   }
@@ -100,6 +103,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
       return;
     }
     cache.remove(buildCacheKey(cacheCategory, userID));
+    TelemetryCounter.incrementValue("http", "DynamicContentResponseCache-invalidation", cacheCategory);
   }
 
   @Override
@@ -112,6 +116,7 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     String serverEtag = cache.get(buildCacheKey(cacheCategory, request.getRemoteUser()));
     if (clientEtag != null && clientEtag.equals(serverEtag)) {
       response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+      TelemetryCounter.incrementValue("http", "DynamicContentResponseCache-hit", cacheCategory);
       return true;
     }
     return false;
