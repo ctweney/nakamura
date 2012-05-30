@@ -102,7 +102,11 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     if (disableForDevMode) {
       return;
     }
-    cache.remove(buildCacheKey(cacheCategory, userID));
+    String key = buildCacheKey(cacheCategory, userID);
+    if (!cache.containsKey(key)) {
+      return;
+    }
+    cache.remove(key);
     TelemetryCounter.incrementValue("http", "DynamicContentResponseCache-invalidation", cacheCategory);
   }
 
