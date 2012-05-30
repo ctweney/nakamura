@@ -126,6 +126,13 @@ public class DynamicContentResponseCacheImpl implements DynamicContentResponseCa
     return false;
   }
 
+  @Override
+  public void clear() {
+    if (cache != null) {
+      cache.clear();
+    }
+  }
+
   private String buildETag(HttpServletRequest request) {
     String rawTag = request.getRemoteUser() + ':' + request.getPathInfo() + ':' + request.getQueryString()
         + ':' + System.nanoTime();

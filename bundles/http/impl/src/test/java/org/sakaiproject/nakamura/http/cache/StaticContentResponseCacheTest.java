@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.osgi.service.component.ComponentContext;
+import org.sakaiproject.nakamura.api.http.cache.StaticContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -68,7 +69,7 @@ public class StaticContentResponseCacheTest {
   @Mock
   private FilterChain chain;
 
-  private StaticContentResponseCache staticContentResponseCache;
+  private StaticContentResponseCacheImpl staticContentResponseCache;
 
   @Mock
   private ComponentContext componentContext;
@@ -87,17 +88,17 @@ public class StaticContentResponseCacheTest {
 
   @Before
   public void setup() throws Exception {
-    staticContentResponseCache = new StaticContentResponseCache();
+    staticContentResponseCache = new StaticContentResponseCacheImpl();
     staticContentResponseCache.cacheManagerService = cacheMangerService;
     when(cacheMangerService.getCache(StaticContentResponseCache.class.getName()+"-cache", CacheScope.INSTANCE)).thenReturn(cache);
 
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
-    properties.put(StaticContentResponseCache.SAKAI_CACHE_PATTERNS, new String[] {
+    properties.put(StaticContentResponseCacheImpl.SAKAI_CACHE_PATTERNS, new String[] {
         "root;.*(js|css)$;3456000",
         "root;.*html$;3456000",
         "styles;.*\\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$;3456000"
         });
-    properties.put(StaticContentResponseCache.SAKAI_CACHE_PATHS, new String[] {
+    properties.put(StaticContentResponseCacheImpl.SAKAI_CACHE_PATHS, new String[] {
         "dev;3456000",
         "devwidgets;3456000",
         "cacheable;3456000"});
@@ -191,6 +192,12 @@ public class StaticContentResponseCacheTest {
     
     
     
+  }
+
+  @Test
+  public void clear() {
+    staticContentResponseCache.clear();
+    verify(cache).clear();
   }
 
   private CachedResponse populateResponseCapture(boolean useOutputStream) throws IOException {

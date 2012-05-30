@@ -117,4 +117,10 @@ public class DynamicContentResponseCacheImplTest {
     verify(response, never()).setStatus(304);
   }
 
+  @Test
+  public void clear() {
+    dynamicContentResponseCache.clear();
+    verify(cache).clear();
+  }
+
 }

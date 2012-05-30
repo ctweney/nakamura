@@ -60,4 +60,9 @@ public interface DynamicContentResponseCache {
   boolean send304WhenClientHasFreshETag(String cacheCategory, HttpServletRequest request,
                                         HttpServletResponse response);
 
+  /**
+   * Drop all entries from the cache.
+   */
+  void clear();
+
 }

@@ -25,10 +25,12 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
 import org.sakaiproject.nakamura.api.http.cache.CacheConfig;
+import org.sakaiproject.nakamura.api.http.cache.StaticContentResponseCache;
 import org.sakaiproject.nakamura.api.memory.Cache;
 import org.sakaiproject.nakamura.api.memory.CacheManagerService;
 import org.sakaiproject.nakamura.api.memory.CacheScope;
@@ -52,6 +54,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @Component(immediate = true, metatype = true, enabled = true)
+@Service
 @Properties(value = {
     @Property(name = "service.description", value = "Nakamura Cache-Control Filter"),
     @Property(name = "sakai.cache.paths", value = {
@@ -65,9 +68,9 @@ import javax.servlet.http.HttpServletResponse;
         "var;^/var/widgets.json$;172800"},
         description = "List of path prefixes followed by a regex. If the prefix starts with a root: it means files in the root folder that match the pattern."),
     @Property(name = "service.vendor", value = "The Sakai Foundation")})
-public class StaticContentResponseCache implements Filter {
+public class StaticContentResponseCacheImpl implements Filter, StaticContentResponseCache {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(StaticContentResponseCache.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StaticContentResponseCacheImpl.class);
 
   /**
    * map of expiry times for whole subtrees
@@ -242,6 +245,13 @@ public class StaticContentResponseCache implements Filter {
 
   }
 
+  @Override
+  public void clear() {
+    if (cache != null) {
+      cache.clear();
+    }
+  }
+
   @SuppressWarnings({"UnusedParameters", "UnusedDeclaration"})
   @Deactivate
   public void deactivate(ComponentContext componentContext) {
@@ -259,7 +269,7 @@ public class StaticContentResponseCache implements Filter {
     CachedResponse cachedResponse = getCachedResponse(request);
 
     if (cachedResponse != null && cachedResponse.isValid()) {
-      TelemetryCounter.incrementValue("http", "StaticContentResponseCache-hit", getCacheKey(request));
+      TelemetryCounter.incrementValue("http", "StaticContentResponseCacheImpl-hit", getCacheKey(request));
       cachedResponse.replay(response);
       return true;
     }
@@ -294,7 +304,7 @@ public class StaticContentResponseCache implements Filter {
       if (responseOperation.canCache()) {
         String key = getCacheKey(request);
         cache.put(key, new CachedResponse(responseOperation, cacheConfig.getMaxAge()));
-        TelemetryCounter.incrementValue("http", "StaticContentResponseCache-save", key);
+        TelemetryCounter.incrementValue("http", "StaticContentResponseCacheImpl-save", key);
       }
     } catch (IOException e) {
       LOGGER.info("Failed to save response in cache ", e);
