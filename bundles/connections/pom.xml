@@ -95,7 +95,7 @@
     <dependency>
       <groupId>org.sakaiproject.nakamura</groupId>
       <artifactId>org.sakaiproject.nakamura.activity.api</artifactId>
-      <version>1.3-SNAPSHOT</version>
+      <version>1.4.0-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
