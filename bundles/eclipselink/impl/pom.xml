@@ -62,6 +62,7 @@
           <instructions>
             <Bundle-Category>sakai-nakamura</Bundle-Category>
             <Private-Package>org.sakaiproject.nakamura.eclipselink.impl.*</Private-Package>
+            <Import-Package>javax.persistence;jpa=?2.0?;version=?1.1.0?,org.osgi.*,org.slf4j.*</Import-Package>
           </instructions>
         </configuration>
       </plugin>
@@ -74,23 +75,24 @@
       <groupId>org.eclipse.persistence</groupId>
       <artifactId>javax.persistence</artifactId>
       <version>2.0.0</version>
-      <scope>compile</scope>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.eclipse.persistence</groupId>
       <artifactId>eclipselink</artifactId>
       <version>2.3.2</version>
-      <scope>compile</scope>
+      <scope>provided</scope>
     </dependency>
 
+    <!--
     <dependency>
       <groupId>org.eclipse</groupId>
       <artifactId>org.eclipse.gemini.jpa</artifactId>
       <version>1.0.0.RELEASE</version>
-      <scope>compile</scope>
+      <scope>provided</scope>
     </dependency>
-
+        -->
 
     <dependency>
       <groupId>org.apache.felix</groupId>
