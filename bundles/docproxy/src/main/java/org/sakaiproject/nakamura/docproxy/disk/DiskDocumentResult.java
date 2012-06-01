@@ -17,7 +17,6 @@
  */
 package org.sakaiproject.nakamura.docproxy.disk;
 
-import org.apache.commons.logging.Log;
 import org.apache.sling.commons.json.JSONObject;
 import org.sakaiproject.nakamura.api.docproxy.DocProxyException;
 import org.sakaiproject.nakamura.api.docproxy.ExternalDocumentResult;
@@ -63,10 +62,10 @@ public class DiskDocumentResult implements ExternalDocumentResult {
       try {
         in.close();
       } catch (IOException e1) {
-        return null;
+        // let go, man. let it go.
       }
       return null;
-    } 
+    }
   }
 
   /**

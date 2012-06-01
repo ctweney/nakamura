@@ -55,8 +55,8 @@ import java.util.Set;
   @Property(name = "sakai.search.provider", value = "MeManagerViewer") })
 public class MeManagerViewerSearchPropertyProvider implements SolrSearchPropertyProvider {
 
-  private static final String QUERY = " AND (content:({0}) OR filename:({0}) OR tag:({0}) OR description:({0}) OR path:({0}) OR ngram:({0}) OR edgengram:({0}))";
-  
+  private static final String QUERY = " AND general:({0})";
+
   @Reference
   protected ConnectionManager connectionManager;
   private static final int MAX_DEPTH = 6;
@@ -93,7 +93,7 @@ public class MeManagerViewerSearchPropertyProvider implements SolrSearchProperty
     }
 
     String q = request.getParameter("q");
-    if (!StringUtils.isBlank(q)) {
+    if (!StringUtils.isBlank(q) && !("*".equals(q))) {
       propertiesMap.put("_q", MessageFormat.format(QUERY, q));
     }
   }

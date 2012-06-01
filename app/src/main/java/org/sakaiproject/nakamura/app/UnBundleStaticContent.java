@@ -115,22 +115,23 @@ public class UnBundleStaticContent {
 				if (name.startsWith(source[i]) && !je.isDirectory()) {
 					File target = new File(dest[i], name.substring(source[i]
 							.length()));
-					if (!target.exists()
-							|| target.lastModified() < je.getTime()
-							|| je.getTime() < 0) {
-						target.getParentFile().mkdirs();
-						OutputStream out = new FileOutputStream(target);
-						InputStream in = containingJarFile.getInputStream(je);
-						copy(in, out);
-						out.close();
-						in.close();
-						logger.info("Updated      " + target.getAbsoluteFile(),
-								null);
-					} else {
-						logger.info("No Update to " + target.getAbsoluteFile(),
-								null);
-
+					target.getParentFile().mkdirs();
+					OutputStream out = null;
+					InputStream in = null;
+					try {
+					  out = new FileOutputStream(target);
+					  in = containingJarFile.getInputStream(je);
+					  copy(in, out);
+					} finally {
+					  if (in != null) {
+					    in.close();
+					  }
+					  if (out != null) {
+					    out.close();
+					  }
 					}
+					logger.info("Updated      " + target.getAbsoluteFile(),
+							null);
 					files.add(target);
 				}
 			}

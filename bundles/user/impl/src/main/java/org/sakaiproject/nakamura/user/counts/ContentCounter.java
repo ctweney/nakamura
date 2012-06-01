@@ -41,8 +41,8 @@ import com.google.common.collect.Lists;
 public class ContentCounter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ContentCounter.class);
-  private static final String QUERY_TMPL = "(resourceType:sakai/pooled-content OR category:collection) AND ((manager:(%1$s) OR viewer:(%1$s))";
-  private static final String USER_TMPL = " OR (showalways:true AND (manager:(%1$s) OR viewer:(%1$s)))";
+  private static final String QUERY_TMPL = "(resourceType:sakai/pooled-content OR category:collection) AND ((manager:(%1$s) OR viewer:(%1$s) OR editor:(%1$s))";
+  private static final String USER_TMPL = " OR (showalways:true AND (manager:(%1$s) OR viewer:(%1$s) OR editor:(%1$s)))";
 
   public int countExact(Authorizable au, AuthorizableManager authorizableManager,
       SolrServerService solrSearchService) throws StorageClientException,

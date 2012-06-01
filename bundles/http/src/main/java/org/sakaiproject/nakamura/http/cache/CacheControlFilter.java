@@ -64,13 +64,13 @@ import javax.servlet.http.HttpServletResponse;
     @Property(name = "sakai.cache.paths", value = { 
         "dev;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding", 
         "devwidgets;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
-        "p;Cache-Control:no-cache" }, 
+        "p;Cache-Control:no-cache"},
         description = "List of subpaths and max age for all content under subpath in seconds, setting to 0 makes it non cacheing"),
     @Property(name = "sakai.cache.patterns", value = { 
         "root;.*(js|css)$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "root;.*html$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding",
         "var;^/var/search/public/.*$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:3600;Vary: Accept-Encoding",
-        "var;^/var/widgets.json$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding"}, 
+        "var;^/var/widgets.json$;.lastmodified:unset;.cookies:unset;.requestCache:900;.expires:180000;Vary: Accept-Encoding" },
         description = "List of path prefixes followed by a regex. If the prefix starts with a root: it means files in the root folder that match the pattern."),
     @Property(name = "service.vendor", value = "The Sakai Foundation")})
 public class CacheControlFilter implements Filter {
@@ -100,12 +100,23 @@ public class CacheControlFilter implements Filter {
   @Property(intValue=5)
   private static final String FILTER_PRIORITY_CONF = "filter.priority";
 
+  @Property(boolValue=false, label = "Disable Cache Filter",
+            description = "When selected, disables the caching filter completely. Disabling cache is not recommended in a production environment.")
+  private static final String DISABLE_CACHE_FOR_UI_DEV = "disable.cache.for.dev.mode";
   
+  @Property(boolValue=true, label = "Bypass Cache for http://localhost",
+            description = "When selected, caching will be disabled for 'localhost' and '127.0.0.1', but enabled for all other hosts. Useful for developers.")
+  private static final String BYPASS_CACHE_FOR_LOCALHOST = "bypass.cache.for.localhost";
+
   @Reference 
   protected CacheManagerService cacheManagerService;
   
   @Reference
   protected ExtHttpService extHttpService;
+
+  private boolean disableForDevMode;
+  
+  private boolean bypassForLocalhost;
 
   /**
    * {@inheritDoc}
@@ -125,7 +136,15 @@ public class CacheControlFilter implements Filter {
       throws IOException, ServletException {
     HttpServletRequest srequest = (HttpServletRequest) request;
     HttpServletResponse sresponse = (HttpServletResponse) response;
+    if (bypassForLocalhost && ("localhost".equals(request.getServerName()) 
+                                    || "127.0.0.1".equals(request.getServerName()))) {
+      // bypass for developer convenience
+      chain.doFilter(request, response);
+      return;
+    }
     String path = srequest.getPathInfo();
+    String cacheKey = srequest.getQueryString() == null ? path : path + "?" + srequest.getQueryString();
+
     int respCode = 0;
     Map<String, String> headers = null;
     boolean withLastModfied = true;
@@ -164,7 +183,7 @@ public class CacheControlFilter implements Filter {
       if ( cacheAge > 0 ) {
         cachedResponseManager = new CachedResponseManager(srequest, cacheAge, getCache());
         if ( cachedResponseManager.isValid() ) {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-hit", path);
+          TelemetryCounter.incrementValue("http", "CacheControlFilter-hit", cacheKey);
           cachedResponseManager.send(sresponse);
           return;
         }
@@ -175,13 +194,12 @@ public class CacheControlFilter implements Filter {
       if ( fresponse != null ) {
         chain.doFilter(request, fresponse);
         if ( cachedResponseManager != null ) {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-save", path);
+          TelemetryCounter.incrementValue("http", "CacheControlFilter-save", cacheKey);
           cachedResponseManager.save(fresponse.getResponseOperation());
         } else {
-          TelemetryCounter.incrementValue("http", "CacheControlFilter-nosave", path);
+          TelemetryCounter.incrementValue("http", "CacheControlFilter-nosave", cacheKey);
         }
       } else {
-        TelemetryCounter.incrementValue("http", "CacheControlFilter-noop", path);
         chain.doFilter(request, response);
       }
     }
@@ -269,8 +287,15 @@ public class CacheControlFilter implements Filter {
 
     int filterPriority = PropertiesUtil.toInteger(properties.get(FILTER_PRIORITY_CONF),0);
 
-    extHttpService.registerFilter(this, ".*", null, filterPriority, null);
+    disableForDevMode = PropertiesUtil.toBoolean(properties.get(DISABLE_CACHE_FOR_UI_DEV), false);
+    
+    bypassForLocalhost = PropertiesUtil.toBoolean(properties.get(BYPASS_CACHE_FOR_LOCALHOST), true);
 
+    if ( disableForDevMode ) {
+      extHttpService.unregisterFilter(this);
+    } else {
+      extHttpService.registerFilter(this, ".*", null, filterPriority, null);
+    }
 
   }
 

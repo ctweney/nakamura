@@ -153,6 +153,8 @@ public class DocumentationServlet extends SlingSafeMethodsServlet {
    */
   private void send(SlingHttpServletResponse response,
       ServletDocumentation doc) throws IOException {
+    response.setContentType("text/html");
+    response.setCharacterEncoding("UTF-8");
     PrintWriter writer = response.getWriter();
     writer.append(DocumentationConstants.HTML_HEADER);
     writer.append("<h1>");

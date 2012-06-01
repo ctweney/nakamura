@@ -17,7 +17,7 @@
 	<parent>
 		<artifactId>base</artifactId>
 		<groupId>org.sakaiproject.nakamura</groupId>
-		<version>1.3-SNAPSHOT</version>
+		<version>1.4.0-SNAPSHOT</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
@@ -50,35 +50,39 @@
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </dependency>
+        <dependency>
+        	<groupId>org.sakaiproject.nakamura</groupId>
+    	    <artifactId>org.sakaiproject.nakamura.core</artifactId>
+	    </dependency>
 		<dependency>
 			 <groupId>org.sakaiproject.nakamura</groupId>
 			 <artifactId>org.sakaiproject.nakamura.doc</artifactId>
-			 <version>1.3-SNAPSHOT</version>
+			 <version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.memory</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.messaging</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.search.api</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.jcr</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.user.api</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.felix</groupId>
@@ -88,7 +92,10 @@
 			<groupId>org.apache.felix</groupId>
 			<artifactId>org.osgi.core</artifactId>
 		</dependency>
-
+		<dependency>
+    	    <groupId>org.apache.felix</groupId>
+	        <artifactId>org.apache.felix.scr.annotations</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>servlet-api</artifactId>
@@ -141,7 +148,7 @@
 		<dependency>
 			<groupId>org.sakaiproject.nakamura</groupId>
 			<artifactId>org.sakaiproject.nakamura.testutils</artifactId>
-			<version>1.3-SNAPSHOT</version>
+			<version>1.4.0-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
