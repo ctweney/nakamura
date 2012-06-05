@@ -34,7 +34,7 @@ public class JPAExampleComponent {
 
   private static final Logger LOG = LoggerFactory.getLogger(JPAExampleComponent.class);
 
-  @Reference
+  @Reference(target = "(osgi.unit.name=openjpaexample)")
   private EntityManagerFactory entityManagerFactory;
 
   /**
@@ -45,16 +45,17 @@ public class JPAExampleComponent {
    * This also allows this service to start/stop in parallel with the data
    * source that does the work.
    */
-  @Reference(target = "(dataSourceName=openjpaexample)")
-  private DataSource dataSource;
-
+//  @Reference(target = "(dataSourceName=openjpaexample)")
+//  private DataSource dataSource;
   public void activate(ComponentContext componentContext) {
     exercise();
   }
 
   public void exercise() {
+
+    EntityManager entityManager = null;
     try {
-      EntityManager entityManager = entityManagerFactory.createEntityManager();
+      entityManager = entityManagerFactory.createEntityManager();
       LOG.info("Doing some JPA");
       LOG.info("EM: " + entityManager + "; EMF = " + entityManagerFactory);
 
@@ -71,7 +72,9 @@ public class JPAExampleComponent {
       ExampleModel model2 = entityManager.find(ExampleModel.class, model.getId());
       LOG.info("Model " + model.getId() + " from db: " + model2);
     } finally {
-      entityManagerFactory.close();
+      if (entityManager != null) {
+        entityManager.close();
+      }
     }
   }
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+  <persistence-unit name="openjpaexample" transaction-type="RESOURCE_LOCAL">
+    <non-jta-data-source>osgi:service/javax.sql.DataSource/(dataSourceName=openjpaexample)
+    </non-jta-data-source>
+
+    <class>org.sakaiproject.nakamura.openjpa.example.ExampleModel</class>
+
+    <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+    <properties>
+      <!-- vendor-specific properties go here -->
+      <property name="openjpa.Log" value="DefaultLevel=INFO"/>
+      <property name="openjpa.jdbc.SynchronizeMappings" value="buildSchema"/>
+    </properties>
+
+  </persistence-unit>
+</persistence>

@@ -279,6 +279,42 @@ KERN-1187
           <version>2.0.0</version>
         </bundle>
 
+        <bundle>
+          <groupId>org.apache.servicemix.bundles</groupId>
+          <artifactId>org.apache.servicemix.bundles.serp</artifactId>
+          <version>1.13.1_3</version>
+        </bundle>
+
+        <bundle>
+          <groupId>org.apache.aries.jpa</groupId>
+          <artifactId>org.apache.aries.jpa.container</artifactId>
+          <version>0.3</version>
+        </bundle>
+
+        <bundle>
+          <groupId>org.apache.aries.jndi</groupId>
+          <artifactId>org.apache.aries.jndi.api</artifactId>
+          <version>0.3</version>
+        </bundle>
+
+        <bundle>
+          <groupId>org.apache.aries.jndi</groupId>
+          <artifactId>org.apache.aries.jndi.core</artifactId>
+          <version>0.3</version>
+        </bundle>
+
+        <bundle>
+          <groupId>org.apache.aries.jndi</groupId>
+          <artifactId>org.apache.aries.jndi.url</artifactId>
+          <version>0.3</version>
+        </bundle>
+
+        <bundle>
+          <groupId>org.apache.aries.proxy</groupId>
+          <artifactId>org.apache.aries.proxy</artifactId>
+          <version>0.3</version>
+        </bundle>
+
     </startLevel>
     <startLevel level="5">
         <bundle>
