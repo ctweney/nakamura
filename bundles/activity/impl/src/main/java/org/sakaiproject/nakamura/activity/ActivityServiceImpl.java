@@ -89,7 +89,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
   @Reference
   Repository repository;
 
-  @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity)")
+  @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity.jpa)")
   private EntityManagerFactory entityManagerFactory;
 
   private static SecureRandom random = null;
@@ -161,7 +161,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
 
     EntityManager em = entityManagerFactory.createEntityManager();
     ActivityModel model = new ActivityModel();
-    model.setProperty("testFOO");
+    model.setProperty("activityMessage=" + activityProperties.get("sakai:activityMessage"));
     LOGGER.info("Saving ActivityModel to JPA db");
     em.getTransaction().begin();
     em.persist(model);

@@ -36,6 +36,13 @@
           <instructions>
             <Bundle-Category>sakai-nakamura</Bundle-Category>
             <Export-Package>org.sakaiproject.nakamura.api.activity</Export-Package>
+
+            <!-- begin block of statements needed for OpenJPA to pick up persistence units -->
+            <Import-Package>*</Import-Package>
+            <DynamicImport-Package>*</DynamicImport-Package>
+            <Meta-Persistence>META-INF/persistence.xml</Meta-Persistence>
+            <!-- end OpenJPA block -->
+
           </instructions>
         </configuration>
       </plugin>
