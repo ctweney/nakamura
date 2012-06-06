@@ -18,7 +18,9 @@
 
 package org.sakaiproject.nakamura.openjpa.example;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Reference;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -26,8 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.spi.PersistenceProvider;
-import javax.sql.DataSource;
 
 @Component
 public class JPAExampleComponent {
@@ -45,32 +45,42 @@ public class JPAExampleComponent {
    * This also allows this service to start/stop in parallel with the data
    * source that does the work.
    */
-//  @Reference(target = "(dataSourceName=openjpaexample)")
-//  private DataSource dataSource;
+  //@Reference(target = "(dataSourceName=openjpaexample)")
+  //private DataSource dataSource;
+  @Activate
+  @Modified
   public void activate(ComponentContext componentContext) {
     exercise();
   }
 
-  public void exercise() {
+  private void exercise() {
 
     EntityManager entityManager = null;
+
     try {
       entityManager = entityManagerFactory.createEntityManager();
+
       LOG.info("Doing some JPA");
       LOG.info("EM: " + entityManager + "; EMF = " + entityManagerFactory);
 
       LOG.info("Creating example model");
       ExampleModel model = new ExampleModel();
-      model.setProperty("Some property");
+      model.setProperty("New property");
       // entityManager.getTransaction().begin();
       entityManager.persist(model);
       // entityManager.getTransaction().commit();
 
-      LOG.info("Attempting to read back model from database");
+      ExampleModel model2 = new ExampleModel();
+      model2.setProperty("Different prop");
+      entityManager.persist(model2);
 
       // model should be written to database now.
-      ExampleModel model2 = entityManager.find(ExampleModel.class, model.getId());
-      LOG.info("Model " + model.getId() + " from db: " + model2);
+      ExampleModel modelFromDB = entityManager.find(ExampleModel.class, model.getId());
+      LOG.info("Model " + modelFromDB.getId() + " from db: " + modelFromDB);
+
+      ExampleModel model2FromDB = entityManager.find(ExampleModel.class, model2.getId());
+      LOG.info("Model2 " + model2FromDB.getId() + " from db: " + model2FromDB);
+
     } finally {
       if (entityManager != null) {
         entityManager.close();

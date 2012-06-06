@@ -131,6 +131,13 @@
 
   <dependencies>
 
+    <!-- nakamura deps -->
+    <dependency>
+      <groupId>org.sakaiproject.nakamura</groupId>
+      <artifactId>org.sakaiproject.nakamura.openjpa.datasource</artifactId>
+      <version>1.4.0-SNAPSHOT</version>
+    </dependency>
+
     <!-- javax.persistence -->
     <dependency>
       <groupId>javax.persistence</groupId>

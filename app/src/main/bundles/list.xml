@@ -821,5 +821,10 @@ KERN-1187
       <artifactId>org.sakaiproject.nakamura.openjpa.impl</artifactId>
       <version>1.4.0-SNAPSHOT</version>
     </bundle>
+    <bundle>
+      <groupId>org.sakaiproject.nakamura</groupId>
+      <artifactId>org.sakaiproject.nakamura.openjpa.datasource</artifactId>
+      <version>1.4.0-SNAPSHOT</version>
+    </bundle>
    </startLevel>
 </bundles>
