@@ -37,6 +37,7 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.osgi.service.event.EventHandler;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityModel;
 import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
@@ -66,6 +67,8 @@ import java.util.Calendar;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.servlet.ServletException;
 
 @Component(immediate = true, metatype = true)
@@ -85,6 +88,9 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
 
   @Reference
   Repository repository;
+
+  @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity)")
+  private EntityManagerFactory entityManagerFactory;
 
   private static SecureRandom random = null;
 
@@ -152,6 +158,17 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
       throw new IllegalStateException("Only Administrative sessions may act on behalf of another user for activities");
     }
     ContentManager contentManager = session.getContentManager();
+
+    EntityManager em = entityManagerFactory.createEntityManager();
+    ActivityModel model = new ActivityModel();
+    model.setProperty("testFOO");
+    LOGGER.info("Saving ActivityModel to JPA db");
+    em.getTransaction().begin();
+    em.persist(model);
+    em.getTransaction().commit();
+    ActivityModel fromDB = em.find(ActivityModel.class, model.getId());
+    LOGGER.info("ActivityModel from JPA db = " + fromDB);
+
     // create activityStore if it does not exist
     String path = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_STORE_NAME);
     if (!contentManager.exists(path)) {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.sakaiproject.nakamura.openjpa.datasource.datasource;
+package org.sakaiproject.nakamura.openjpa.datasource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

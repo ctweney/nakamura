@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.sakaiproject.nakamura.openjpa.example;
+package org.sakaiproject.nakamura.api.activity;
 
-import java.io.Serializable;
 import javax.persistence.Basic;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -26,7 +25,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Entity
-public class ExampleModel implements Serializable {
+public class ActivityModel {
 
   private static final long serialVersionUID = 4417073305813161429L;
 
@@ -51,9 +50,10 @@ public class ExampleModel implements Serializable {
 
   @Override
   public String toString() {
-    return "ExampleModel{" +
+    return "ActivityModel{" +
         "id=" + id +
         ", property='" + property + '\'' +
         '}';
   }
+
 }

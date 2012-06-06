@@ -34,19 +34,9 @@ public class JPAExampleComponent {
 
   private static final Logger LOG = LoggerFactory.getLogger(JPAExampleComponent.class);
 
-  @Reference(target = "(osgi.unit.name=openjpaexample)")
+  @Reference(target = "(osgi.unit.name=nakamura.openjpa)")
   private EntityManagerFactory entityManagerFactory;
 
-  /**
-   * This reference is here ONLY to make sure the data source exists before we
-   * try to work with the entity manager factory. It's a nuisance and can be
-   * avoided if it is found possible to bring in the configurations to the
-   * data source in the same style as can be done for services.<br/>
-   * This also allows this service to start/stop in parallel with the data
-   * source that does the work.
-   */
-  //@Reference(target = "(dataSourceName=openjpaexample)")
-  //private DataSource dataSource;
   @Activate
   @Modified
   public void activate(ComponentContext componentContext) {
@@ -61,29 +51,29 @@ public class JPAExampleComponent {
       entityManager = entityManagerFactory.createEntityManager();
 
       LOG.info("Doing some JPA");
-      LOG.info("EM: " + entityManager + "; EMF = " + entityManagerFactory);
 
-      LOG.info("Creating example model");
       ExampleModel model = new ExampleModel();
       model.setProperty("New property");
-      // entityManager.getTransaction().begin();
+      entityManager.getTransaction().begin();
       entityManager.persist(model);
-      // entityManager.getTransaction().commit();
+      entityManager.getTransaction().commit();
 
       ExampleModel model2 = new ExampleModel();
       model2.setProperty("Different prop");
+      entityManager.getTransaction().begin();
       entityManager.persist(model2);
+      entityManager.getTransaction().commit();
 
       // model should be written to database now.
       ExampleModel modelFromDB = entityManager.find(ExampleModel.class, model.getId());
-      LOG.info("Model " + modelFromDB.getId() + " from db: " + modelFromDB);
+      LOG.info("Model from db: " + modelFromDB);
 
       ExampleModel model2FromDB = entityManager.find(ExampleModel.class, model2.getId());
-      LOG.info("Model2 " + model2FromDB.getId() + " from db: " + model2FromDB);
+      LOG.info("Model2 from db: " + model2FromDB);
 
     } finally {
       if (entityManager != null) {
-        entityManager.close();
+        //entityManager.close();
       }
     }
   }

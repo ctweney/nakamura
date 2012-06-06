@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.sakaiproject.nakamura.openjpa.datasource.datasource;
+package org.sakaiproject.nakamura.openjpa.datasource;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -35,15 +35,21 @@ import java.util.Hashtable;
 import java.util.Map;
 import javax.sql.DataSource;
 
-@Component(configurationFactory = true, policy = ConfigurationPolicy.REQUIRE, metatype = true)
+@Component(immediate = true, metatype = true)
 @Properties(value = {
-    @Property(name = DataSourceProvider.DRIVER),
-    @Property(name = DataSourceProvider.URL),
-    @Property(name = DataSourceProvider.USERNAME),
-    @Property(name = DataSourceProvider.PASSWORD),
-    @Property(name = DataSourceProvider.DATA_SOURCE_NAME)
+    @Property(name = DataSourceProvider.DRIVER, value = DataSourceProvider.DEFAULT_DRIVER),
+    @Property(name = DataSourceProvider.URL, value = DataSourceProvider.DEFAULT_URL),
+    @Property(name = DataSourceProvider.USERNAME, value = DataSourceProvider.DEFAULT_USERNAME),
+    @Property(name = DataSourceProvider.PASSWORD, value = DataSourceProvider.DEFAULT_PASSWORD),
+    @Property(name = DataSourceProvider.DATA_SOURCE_NAME, value = DataSourceProvider.DEFAULT_DATA_SOURCE_NAME)
 })
 public class DataSourceProvider {
+
+  public static final String DEFAULT_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
+  public static final String DEFAULT_URL = "jdbc:derby:sling/nakamura.openjpa/db;create=true";
+  public static final String DEFAULT_USERNAME = "sakai";
+  public static final String DEFAULT_PASSWORD = "ironchef";
+  public static final String DEFAULT_DATA_SOURCE_NAME = "nakamura.openjpa";
 
   public static final String DRIVER = "driver";
   public static final String URL = "url";
@@ -55,11 +61,11 @@ public class DataSourceProvider {
 
   @Activate
   public void activate(ComponentContext ctx, Map<?, ?> props) throws Exception {
-    String driverName = PropertiesUtil.toString(props.get(DRIVER), null);
-    String dataSourceName = PropertiesUtil.toString(props.get(DATA_SOURCE_NAME), null);
-    String url = PropertiesUtil.toString(props.get(URL), null);
-    String username = PropertiesUtil.toString(props.get(USERNAME), null);
-    String password = PropertiesUtil.toString(props.get(PASSWORD), null);
+    String driverName = PropertiesUtil.toString(props.get(DRIVER), DEFAULT_DRIVER);
+    String dataSourceName = PropertiesUtil.toString(props.get(DATA_SOURCE_NAME), DEFAULT_DATA_SOURCE_NAME);
+    String url = PropertiesUtil.toString(props.get(URL), DEFAULT_URL);
+    String username = PropertiesUtil.toString(props.get(USERNAME), DEFAULT_USERNAME);
+    String password = PropertiesUtil.toString(props.get(PASSWORD), DEFAULT_PASSWORD);
 
     if (StringUtils.isBlank(driverName) || StringUtils.isBlank(url)
         || StringUtils.isBlank(dataSourceName)) {
