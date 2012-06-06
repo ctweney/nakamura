@@ -66,75 +66,12 @@ public class LiteMeServletTest {
     meServlet.searchServiceFactory = searchServiceFactory;
     meServlet.basicUserInfoService = basicUserInfoService;
     
-    meServlet.activate(Collections.emptyMap());
   }
 
   @Test
-  public void getDefaultLocale() {
-    Locale locale = meServlet.getLocale(Collections.<String, Object>emptyMap());
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
+  public void testNothingForNow() {
+    // I assume someone will add test coverage in the future; otherwise I would just
+    // remove the entire class.
   }
 
-  @Test
-  public void getCustomLocale() {
-    // common la_CO format
-    Map<String, Object> props = ImmutableMap.<String, Object>of("locale", Locale.GERMANY.toString());
-    Locale locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.GERMANY.getLanguage());
-    assertEquals(locale.getCountry(), Locale.GERMANY.getCountry());
-
-    // the funky format that prompted all this es_419
-    props = ImmutableMap.<String, Object>of("locale", "es_419");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), "es");
-    assertEquals(locale.getCountry(), "419");
-  }
-
-  @Test
-  public void getCustomLanguage() {
-    Map<String, Object> props = ImmutableMap.<String, Object>of("locale", Locale.GERMAN.toString());
-    Locale locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.GERMAN.getLanguage());
-    assertEquals(locale.getCountry(), "");
-  }
-
-  @Test
-  public void getInvalidLocale() {
-    // this is of bad form
-    Map<String, Object> props = ImmutableMap.<String, Object>of("locale", "bad_WRONG");
-    Locale locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
-
-    // this is of bad form
-    props = ImmutableMap.<String, Object>of("locale", "123_456");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
-
-    // this is of valid form but not a real locale
-    props = ImmutableMap.<String, Object>of("locale", "xx_XX");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), "xx");
-    assertEquals(locale.getCountry(), "XX");
-
-    // this is just weird
-    props = ImmutableMap.<String, Object>of("locale", "_");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
-
-    // this is jibberish
-    props = ImmutableMap.<String, Object>of("locale", "jibberish");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
-
-    // this is for utf8 testing
-    props = ImmutableMap.<String, Object>of("locale", "ŠšĐđČčĆćŽž");
-    locale = meServlet.getLocale(props);
-    assertEquals(locale.getLanguage(), Locale.US.getLanguage());
-    assertEquals(locale.getCountry(), Locale.US.getCountry());
-  }
 }

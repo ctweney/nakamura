@@ -36,6 +36,7 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.GroupParams;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -178,6 +179,12 @@ public class SolrResultSetFactory implements ResultSetFactory {
       }
       // save filterQuery changes
       queryOptions.put(CommonParams.FQ, filterQueries);
+
+      // Ensure proper totals from grouped / collapsed queries.
+      if ("true".equals(queryOptions.get(GroupParams.GROUP)) &&
+          (queryOptions.get(GroupParams.GROUP_TOTAL_COUNT) == null)) {
+        queryOptions.put(GroupParams.GROUP_TOTAL_COUNT, "true");
+      }
 
       SolrQuery solrQuery = buildQuery(request, query.getQueryString(), queryOptions);
 
