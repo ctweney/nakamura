@@ -21,9 +21,7 @@ package org.sakaiproject.nakamura.openjpa.datasource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
@@ -36,13 +34,6 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 @Component(immediate = true, metatype = true)
-@Properties(value = {
-    @Property(name = DataSourceProvider.DRIVER, value = DataSourceProvider.DEFAULT_DRIVER),
-    @Property(name = DataSourceProvider.URL, value = DataSourceProvider.DEFAULT_URL),
-    @Property(name = DataSourceProvider.USERNAME, value = DataSourceProvider.DEFAULT_USERNAME),
-    @Property(name = DataSourceProvider.PASSWORD, value = DataSourceProvider.DEFAULT_PASSWORD),
-    @Property(name = DataSourceProvider.DATA_SOURCE_NAME, value = DataSourceProvider.DEFAULT_DATA_SOURCE_NAME)
-})
 public class DataSourceProvider {
 
   public static final String DEFAULT_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
@@ -51,10 +42,19 @@ public class DataSourceProvider {
   public static final String DEFAULT_PASSWORD = "ironchef";
   public static final String DEFAULT_DATA_SOURCE_NAME = "nakamura.openjpa";
 
+  @Property(value = DEFAULT_DRIVER)
   public static final String DRIVER = "driver";
+
+  @Property(value = DEFAULT_URL)
   public static final String URL = "url";
+
+  @Property(value = DEFAULT_USERNAME)
   public static final String USERNAME = "username";
+
+  @Property(value = DEFAULT_PASSWORD)
   public static final String PASSWORD = "password";
+
+  @Property(value = DEFAULT_DATA_SOURCE_NAME)
   public static final String DATA_SOURCE_NAME = "dataSourceName";
 
   private ServiceRegistration serviceReg;
