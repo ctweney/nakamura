@@ -37,7 +37,7 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.osgi.service.event.EventHandler;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityModel;
+import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
@@ -64,7 +64,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import javax.persistence.EntityManager;
@@ -90,7 +92,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
   Repository repository;
 
   @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity.jpa)")
-  private EntityManagerFactory entityManagerFactory;
+  EntityManagerFactory entityManagerFactory;
 
   private static SecureRandom random = null;
 
@@ -159,16 +161,6 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
     ContentManager contentManager = session.getContentManager();
 
-    EntityManager em = entityManagerFactory.createEntityManager();
-    ActivityModel model = new ActivityModel();
-    model.setProperty("activityMessage=" + activityProperties.get("sakai:activityMessage"));
-    LOGGER.info("Saving ActivityModel to JPA db");
-    em.getTransaction().begin();
-    em.persist(model);
-    em.getTransaction().commit();
-    ActivityModel fromDB = em.find(ActivityModel.class, model.getId());
-    LOGGER.info("ActivityModel from JPA db = " + fromDB);
-
     // create activityStore if it does not exist
     String path = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_STORE_NAME);
     if (!contentManager.exists(path)) {
@@ -200,6 +192,31 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
           JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
           (Object) ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE)));
     }
+
+    // JPA-based activity persistence
+    EntityManager entityManager = null;
+    try {
+      entityManager = entityManagerFactory.createEntityManager();
+      Map<String, Object> props = new HashMap<String,Object>(activityProperties);
+      props.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
+          ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
+      props.put(ActivityConstants.PARAM_ACTOR_ID, userId);
+      props.put(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
+      Activity activity = new Activity(activityPath, new Date(), props);
+      LOGGER.info("Saving Activity to JPA db: " + activity);
+
+      entityManager.getTransaction().begin();
+      entityManager.persist(activity);
+      entityManager.getTransaction().commit();
+      Activity fromDB = entityManager.find(Activity.class, activity.getId());
+      LOGGER.info("Activity from JPA db = " + fromDB);
+      Content contentFromDB = fromDB.toContent();
+      LOGGER.info("Activity from JPA db converted to Content object: " + contentFromDB);
+
+    } finally {
+      closeSilently(entityManager);
+    }
+
 
     Content activityNode = contentManager.get(activityPath);
     activityNode.setProperty(PARAM_ACTOR_ID, userId);
@@ -258,4 +275,14 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     return id.toString();
   }
 
+  private void closeSilently(EntityManager em) {
+    if (em != null) {
+      try {
+        em.close();
+      } catch (Throwable t) {
+        LOGGER.warn("Error closing EntityManager", t);
+      }
+    }
+  }
 }
+

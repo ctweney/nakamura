@@ -27,6 +27,7 @@ import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Repository;
@@ -40,9 +41,13 @@ import org.sakaiproject.nakamura.lite.BaseMemoryRepository;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 
 public class ActivityServiceImplTest extends Assert {
 
@@ -54,6 +59,7 @@ public class ActivityServiceImplTest extends Assert {
   public void setup() throws Exception {
     this.activityService = new ActivityServiceImpl();
     this.activityService.eventAdmin = Mockito.mock(EventAdmin.class);
+    this.activityService.entityManagerFactory = Mockito.mock(EntityManagerFactory.class);
     repository = new BaseMemoryRepository().getRepository();
     this.activityService.repository = repository;
 
@@ -74,6 +80,13 @@ public class ActivityServiceImplTest extends Assert {
     String userID = "alice";
     Map<String, Object> props = new HashMap<String, Object>();
     props.put("someProp", "someVal");
+
+    EntityManager entityManager = Mockito.mock(EntityManager.class);
+    Mockito.when(this.activityService.entityManagerFactory.createEntityManager()).thenReturn(
+        entityManager);
+    Mockito.when(entityManager.getTransaction()).thenReturn(Mockito.mock(EntityTransaction.class));
+    Mockito.when(entityManager.find(Mockito.eq(Activity.class), Mockito.anyLong())).thenReturn(
+        new Activity("/fake/activity/path", new Date(), null));
     this.activityService.createActivity(adminSession, content, userID, props);
 
     Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));

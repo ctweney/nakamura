@@ -7,7 +7,7 @@
     <non-jta-data-source>osgi:service/javax.sql.DataSource/(dataSourceName=nakamura.openjpa)
     </non-jta-data-source>
 
-    <class>org.sakaiproject.nakamura.api.activity.ActivityModel</class>
+    <class>org.sakaiproject.nakamura.api.activity.Activity</class>
 
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
 

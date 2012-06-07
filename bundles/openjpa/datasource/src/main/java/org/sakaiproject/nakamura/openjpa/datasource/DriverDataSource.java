@@ -18,9 +18,6 @@
 
 package org.sakaiproject.nakamura.openjpa.datasource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -30,7 +27,6 @@ import java.util.Properties;
 import javax.sql.DataSource;
 
 public class DriverDataSource implements DataSource {
-  private static final Logger LOG = LoggerFactory.getLogger(DriverDataSource.class);
 
   private String url;
 
@@ -88,8 +84,6 @@ public class DriverDataSource implements DataSource {
   }
 
   public Connection getConnection(String username, String password) throws SQLException {
-    LOG.info("DriverDataSource.getConnection Classloader = " + this.getClass().getClassLoader());
-
     Properties props = new Properties();
     if (username == null)
       username = this.username;

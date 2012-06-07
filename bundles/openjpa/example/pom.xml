@@ -20,11 +20,11 @@
     <version>1.4.0-SNAPSHOT</version>
     <relativePath>../../../pom.xml</relativePath>
   </parent>
-  <artifactId>org.sakaiproject.nakamura.openjpa.impl</artifactId>
+  <artifactId>org.sakaiproject.nakamura.openjpa.example</artifactId>
   <packaging>bundle</packaging>
   <version>1.4.0-SNAPSHOT</version>
-  <name>Sakai Nakamura :: OpenJPA Core Implementation Bundle</name>
-  <description>Provides OpenJPA persistence services implementation</description>
+  <name>Sakai Nakamura :: OpenJPA Core Example Bundle</name>
+  <description>Provides OpenJPA persistence services example</description>
 
   <properties>
     <aries.version>0.3</aries.version>

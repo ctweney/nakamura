@@ -35,7 +35,7 @@
         <configuration>
           <instructions>
             <Bundle-Category>sakai-nakamura</Bundle-Category>
-            <Export-Package>org.sakaiproject.nakamura.api.activity</Export-Package>
+            <Export-Package>org.sakaiproject.nakamura.api.activity,org.apache.commons.io</Export-Package>
 
             <!-- begin block of statements needed for OpenJPA to pick up persistence units -->
             <Import-Package>*</Import-Package>

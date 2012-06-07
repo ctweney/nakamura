@@ -116,6 +116,7 @@
         <module>bundles/content-packaging</module>
         <module>bundles/postgresqlwrapper</module>
         <module>bundles/solr</module>
+        <module>bundles/openjpa/datasource</module>
         <module>testscripts</module>
       </modules>
     </profile>
