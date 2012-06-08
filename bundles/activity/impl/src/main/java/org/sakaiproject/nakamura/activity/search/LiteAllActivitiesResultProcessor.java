@@ -26,7 +26,9 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.commons.json.JSONException;
 import org.apache.sling.commons.json.io.JSONWriter;
 import org.apache.sling.jcr.resource.JcrResourceConstants;
+import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -69,6 +71,9 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
   @Reference
   protected BasicUserInfoService basicUserInfoService;
 
+  @Reference
+  protected ActivityService activityService;
+
   public void writeResult(SlingHttpServletRequest request, JSONWriter write, Result result)
       throws JSONException {
     Session session = StorageClientUtils.adaptToSession(request.getResourceResolver()
@@ -77,8 +82,9 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchResultProcess
       ContentManager contentManager = session.getContentManager();
       AuthorizableManager authorizableManager = session.getAuthorizableManager();
       String path = result.getPath();
-      Content activityNode = contentManager.get(path);
-      if (activityNode != null ) {
+      Activity activity = activityService.find(path);
+      if (activity != null ) {
+        Content activityNode = activity.toContent();
         String sourcePath = (String) activityNode.getProperty(ActivityConstants.PARAM_SOURCE);
         LOGGER.debug("Processing {} {} Source = {} ", new Object[]{path, activityNode.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY), sourcePath});
         Content sourceNode = null;

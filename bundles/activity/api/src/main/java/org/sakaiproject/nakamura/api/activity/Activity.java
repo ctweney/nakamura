@@ -210,6 +210,9 @@ public class Activity implements Serializable {
     if (getActor() != null) {
       properties.put(ActivityConstants.PARAM_ACTOR_ID, getActor());
     }
+    if ( getOccurrenceDate() != null ) {
+      properties.put("_created", getOccurrenceDate().getTime());
+    }
     String path = StorageClientUtils.newPath(getParentPath(), getEid());
     return new Content(path, properties);
   }

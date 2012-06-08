@@ -76,7 +76,6 @@ public class ActivityServiceImplTest extends Assert {
     final Session userSession = repository.login("joe", "joe");
     final Session anonSession = repository.login();
 
-    Content content = new Content("/some/arbitrary/path", ImmutableMap.of("foo", (Object) "bar"));
     String userID = "alice";
     Map<String, Object> props = new HashMap<String, Object>();
     props.put("someProp", "someVal");
@@ -87,16 +86,12 @@ public class ActivityServiceImplTest extends Assert {
     Mockito.when(entityManager.getTransaction()).thenReturn(Mockito.mock(EntityTransaction.class));
     Mockito.when(entityManager.find(Mockito.eq(Activity.class), Mockito.anyLong())).thenReturn(
         new Activity("/fake/activity/path", new Date(), null));
-    this.activityService.createActivity(adminSession, content, userID, props);
+    this.activityService.createActivity(adminSession, "/some/arbitrary/path", userID, props);
 
-    Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));
+    Mockito.verify(this.activityService.eventAdmin, Mockito.times(2)).postEvent(Mockito.any(Event.class));
 
     // make sure activity store got created
     String storePath = "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;
-    Content store = adminSession.getContentManager().get(storePath);
-    Assert.assertNotNull(store);
-    Assert.assertEquals(ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE,
-        store.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY));
 
     // check permissions of activity store    
     adminSession.getAccessControlManager().check(Security.ZONE_CONTENT, storePath,
@@ -132,23 +127,6 @@ public class ActivityServiceImplTest extends Assert {
     }
     Assert.assertFalse(canWrite);
 
-    // make sure activity feed got created
-    Content feed = adminSession.getContentManager().get("/some/arbitrary/path/activityFeed");
-    Assert.assertNotNull(feed);
-
-    // make sure at least one activity node exists under the activity store
-    boolean activityFound = false;
-    for (Content item : store.listChildren()) {
-      if (item.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY).equals
-          (ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE)) {
-        activityFound = true;
-        Assert.assertEquals("alice", item.getProperty(ActivityConstants.PARAM_ACTOR_ID));
-        Assert.assertEquals("/some/arbitrary/path", item.getProperty(ActivityConstants.PARAM_SOURCE));
-        Assert.assertEquals("someVal", item.getProperty("someProp"));
-      }
-    }
-    Assert.assertTrue(activityFound);
-
     adminSession.logout();
     userSession.logout();
   }
@@ -157,9 +135,7 @@ public class ActivityServiceImplTest extends Assert {
   public void testCreateActivityAsNonAdminActingAsAnotherUser() throws Exception {
     // make sure a non-admin can't create an activity on behalf of another.
     final Session session = repository.login("joe", "joe");
-    Content content = new Content("/some/arbitrary/path", ImmutableMap.of("foo", (Object) "bar"));
-    String userID = "alice";
-    this.activityService.createActivity(session, content, userID, null);
+    this.activityService.createActivity(session, "/some/arbitrary/path", "alice", null);
   }
 
 

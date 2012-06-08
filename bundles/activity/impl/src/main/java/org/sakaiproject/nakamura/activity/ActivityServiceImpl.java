@@ -39,10 +39,16 @@ import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
+import org.sakaiproject.nakamura.api.lite.StoreListener;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
+import org.sakaiproject.nakamura.api.lite.accesscontrol.AclModification;
+import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
+import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
+import org.sakaiproject.nakamura.api.lite.authorizable.Group;
 import org.sakaiproject.nakamura.api.lite.authorizable.User;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
+import org.sakaiproject.nakamura.api.solr.IndexingHandler;
 import org.sakaiproject.nakamura.api.user.UserConstants;
 import org.sakaiproject.nakamura.util.osgi.EventUtils;
 import org.slf4j.Logger;
@@ -140,7 +146,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
   }
 
-  private void createActivity(Session session, String targetPath, String userId, Map<String, Object> activityProperties)
+  void createActivity(Session session, String targetPath, String userId, Map<String, Object> activityProperties)
       throws AccessDeniedException, StorageClientException, IOException {
     if (userId == null) {
       userId = session.getUserId();
@@ -149,15 +155,33 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
       throw new IllegalStateException("Only Administrative sessions may act on behalf of another user for activities");
     }
 
-    // create activityStore if it does not exist
-    String path = StorageClientUtils.newPath(targetPath, ACTIVITY_STORE_NAME);
+    Map<String, Object> props = new HashMap<String, Object>(activityProperties);
+    props.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
+        ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
+    props.put(ActivityConstants.PARAM_ACTOR_ID, userId);
+    props.put(ActivityConstants.PARAM_SOURCE, targetPath);
 
     // create activity within activityStore
-    String activityPath = StorageClientUtils.newPath(path, createId());
+    String storePath = StorageClientUtils.newPath(targetPath, ACTIVITY_STORE_NAME);
+    String activityPath = StorageClientUtils.newPath(storePath, createId());
+    create(activityPath, userId, props);
 
-    create(activityPath, userId, activityProperties);
+    // set permissions
+    session.getAccessControlManager().setAcl(
+        Security.ZONE_CONTENT,
+        storePath,
+        new AclModification[]{
+            new AclModification(AclModification.denyKey(User.ANON_USER),
+                Permissions.ALL.getPermission(), AclModification.Operation.OP_REPLACE),
+            new AclModification(AclModification.grantKey(Group.EVERYONE),
+                Permissions.CAN_READ.getPermission(), AclModification.Operation.OP_REPLACE),
+            new AclModification(AclModification.grantKey(Group.EVERYONE),
+                Permissions.CAN_WRITE.getPermission(), AclModification.Operation.OP_REPLACE),
+            new AclModification(AclModification.grantKey(userId),
+                Permissions.ALL.getPermission(), AclModification.Operation.OP_REPLACE)});
 
     // post the asynchronous OSGi event for pickup by ActivityDeliverer
+    // TODO is there any reason not to just call the deliverer synchronously?
     final Dictionary<String, String> properties = new Hashtable<String, String>();
     properties.put(UserConstants.EVENT_PROP_USERID, userId);
     properties.put(ActivityConstants.EVENT_PROP_PATH, activityPath);
@@ -171,16 +195,20 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     EntityManager entityManager = null;
     try {
       entityManager = entityManagerFactory.createEntityManager();
-      Map<String, Object> props = new HashMap<String, Object>(properties);
-      props.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
-          ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
-      props.put(ActivityConstants.PARAM_ACTOR_ID, actorID);
-      props.put(ActivityConstants.PARAM_SOURCE, StorageClientUtils.getParentObjectPath(activityPath));
-      Activity activity = new Activity(activityPath, new Date(), props);
+      Activity activity = new Activity(activityPath, new Date(), properties);
       LOGGER.debug("Saving Activity to JPA db: " + activity);
       entityManager.getTransaction().begin();
       entityManager.persist(activity);
       entityManager.getTransaction().commit();
+
+      // post an event that will get picked up by the ActivityIndexingHandler
+      final Dictionary<String, String> eventProps = new Hashtable<String, String>();
+      eventProps.put(UserConstants.EVENT_PROP_USERID, actorID);
+      eventProps.put(ActivityConstants.EVENT_PROP_PATH, activityPath);
+      eventProps.put(IndexingHandler.FIELD_PATH, activityPath);
+      eventProps.put(IndexingHandler.FIELD_RESOURCE_TYPE, ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
+      EventUtils.sendOsgiEvent(eventProps, StoreListener.DEFAULT_CREATE_TOPIC, eventAdmin);
+
     } finally {
       closeSilently(entityManager);
     }

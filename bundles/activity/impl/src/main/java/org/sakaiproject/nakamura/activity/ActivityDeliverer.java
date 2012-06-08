@@ -176,7 +176,7 @@ public class ActivityDeliverer implements MessageListener {
         ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE);
 
     activityService.create(deliveryPath, activity.getActor(), contentProperties.build());
-
+    LOG.debug("Delivered an activity: " + activity);
   }
 
 }

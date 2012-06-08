@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.SessionAdaptable;
@@ -64,6 +65,7 @@ public class LiteAllActivitiesResultProcessorTest {
 
   private LiteAllActivitiesResultProcessor processor;
   private SolrSearchServiceFactory solrSearchServiceFactory;
+  private ActivityService activityService;
   private Repository repository;
   private javax.jcr.Session jcrSession;
   private Session session;
@@ -79,7 +81,9 @@ public class LiteAllActivitiesResultProcessorTest {
   public void setup() throws Exception {
     processor = new LiteAllActivitiesResultProcessor();
     solrSearchServiceFactory = mock(SolrSearchServiceFactory.class);
+    activityService = mock(ActivityService.class);
     processor.searchServiceFactory = solrSearchServiceFactory;
+    processor.activityService = activityService;
     jcrSession = mock(javax.jcr.Session.class, Mockito.withSettings().extraInterfaces(SessionAdaptable.class));
     stringWriter = new StringWriter();
 
