@@ -20,22 +20,20 @@ package org.sakaiproject.nakamura.activity;
 
 import com.google.common.collect.ImmutableMap;
 import junit.framework.Assert;
-import org.apache.sling.jcr.resource.JcrResourceConstants;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.activity.routing.ActivityRouterManager;
 import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
-import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.lite.BaseMemoryRepository;
 
 import java.io.UnsupportedEncodingException;
@@ -60,6 +58,8 @@ public class ActivityServiceImplTest extends Assert {
     this.activityService = new ActivityServiceImpl();
     this.activityService.eventAdmin = Mockito.mock(EventAdmin.class);
     this.activityService.entityManagerFactory = Mockito.mock(EntityManagerFactory.class);
+    this.activityService.activityRouterManager = Mockito.mock(ActivityRouterManager.class);
+
     repository = new BaseMemoryRepository().getRepository();
     this.activityService.repository = repository;
 
@@ -88,7 +88,7 @@ public class ActivityServiceImplTest extends Assert {
         new Activity("/fake/activity/path", new Date(), null));
     this.activityService.createActivity(adminSession, "/some/arbitrary/path", userID, props);
 
-    Mockito.verify(this.activityService.eventAdmin, Mockito.times(2)).postEvent(Mockito.any(Event.class));
+    Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));
 
     // make sure activity store got created
     String storePath = "/some/arbitrary/path/" + ActivityConstants.ACTIVITY_STORE_NAME;

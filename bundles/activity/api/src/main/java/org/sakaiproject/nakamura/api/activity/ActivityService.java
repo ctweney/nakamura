@@ -31,6 +31,6 @@ public interface ActivityService {
 
   Activity find(String path);
 
-  void create(String activityPath, String actorID, Map<String, Object> properties);
+  Activity create(String activityPath, String actorID, Map<String, Object> properties);
 
 }

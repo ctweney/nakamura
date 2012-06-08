@@ -18,8 +18,8 @@
 package org.sakaiproject.nakamura.activity;
 
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_NAME;
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.LITE_EVENT_TOPIC;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -31,6 +31,8 @@ import org.apache.sling.jcr.resource.JcrResourceConstants;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.osgi.service.event.EventHandler;
+import org.sakaiproject.nakamura.activity.routing.ActivityRoute;
+import org.sakaiproject.nakamura.activity.routing.ActivityRouterManager;
 import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.ActivityService;
@@ -91,8 +93,31 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
   @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity.jpa)")
   EntityManagerFactory entityManagerFactory;
 
+  @Reference
+  protected ActivityRouterManager activityRouterManager;
+
   private static SecureRandom random = null;
 
+  @Override
+  public Activity find(String path) {
+    EntityManager entityManager = null;
+    try {
+      entityManager = entityManagerFactory.createEntityManager();
+      StringBuilder queryBuilder = new StringBuilder("SELECT x FROM Activity x WHERE x.eid ='");
+      queryBuilder.append(StorageClientUtils.getObjectName(path)).append("' AND x.parentPath = '");
+      queryBuilder.append(StorageClientUtils.getParentObjectPath(path)).append("'");
+      Query query = entityManager.createQuery(queryBuilder.toString());
+      List results = query.getResultList();
+      if (results != null && !results.isEmpty()) {
+        return (Activity) results.get(0);
+      }
+    } finally {
+      closeSilently(entityManager);
+    }
+    return null;
+  }
+
+  @Override
   public void postActivity(String userId, String path, Map<String, Object> attributes) {
     if (attributes == null) {
       throw new IllegalArgumentException("Map of properties cannot be null");
@@ -111,8 +136,8 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     eventAdmin.postEvent(new Event("org/sakaiproject/nakamura/activity/POSTED", eventProps));
   }
 
+  @Override
   public void handleEvent(Event event) {
-
     Session adminSession = null;
     try {
       adminSession = repository.loginAdministrative();
@@ -164,7 +189,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     // create activity within activityStore
     String storePath = StorageClientUtils.newPath(targetPath, ACTIVITY_STORE_NAME);
     String activityPath = StorageClientUtils.newPath(storePath, createId());
-    create(activityPath, userId, props);
+    Activity activity = create(activityPath, userId, props);
 
     // set permissions
     session.getAccessControlManager().setAcl(
@@ -180,26 +205,19 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
             new AclModification(AclModification.grantKey(userId),
                 Permissions.ALL.getPermission(), AclModification.Operation.OP_REPLACE)});
 
-    // post the asynchronous OSGi event for pickup by ActivityDeliverer
-    // TODO is there any reason not to just call the deliverer synchronously?
-    final Dictionary<String, String> properties = new Hashtable<String, String>();
-    properties.put(UserConstants.EVENT_PROP_USERID, userId);
-    properties.put(ActivityConstants.EVENT_PROP_PATH, activityPath);
-    properties.put("path", activityPath);
-    properties.put("resourceType", ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
-    EventUtils.sendOsgiEvent(properties, LITE_EVENT_TOPIC, eventAdmin);
+    deliver(activity, session);
   }
 
-  public void create(String activityPath, String actorID, Map<String, Object> properties) {
-    // JPA-based activity persistence
+  public Activity create(String activityPath, String actorID, Map<String, Object> properties) {
     EntityManager entityManager = null;
+    Activity activity = null;
     try {
       entityManager = entityManagerFactory.createEntityManager();
-      Activity activity = new Activity(activityPath, new Date(), properties);
-      LOGGER.debug("Saving Activity to JPA db: " + activity);
+      activity = new Activity(activityPath, new Date(), properties);
       entityManager.getTransaction().begin();
       entityManager.persist(activity);
       entityManager.getTransaction().commit();
+      LOGGER.debug("Saved Activity to JPA db: " + activity);
 
       // post an event that will get picked up by the ActivityIndexingHandler
       final Dictionary<String, String> eventProps = new Hashtable<String, String>();
@@ -212,6 +230,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     } finally {
       closeSilently(entityManager);
     }
+    return activity;
   }
 
   /**
@@ -262,23 +281,40 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
   }
 
-  @Override
-  public Activity find(String path) {
-    EntityManager entityManager = null;
-    try {
-      entityManager = entityManagerFactory.createEntityManager();
-      StringBuilder queryBuilder = new StringBuilder("SELECT x FROM Activity x WHERE x.eid ='");
-      queryBuilder.append(StorageClientUtils.getObjectName(path)).append("' AND x.parentPath = '");
-      queryBuilder.append(StorageClientUtils.getParentObjectPath(path)).append("'");
-      Query query = entityManager.createQuery(queryBuilder.toString());
-      List results = query.getResultList();
-      if (results != null && !results.isEmpty()) {
-        return (Activity) results.get(0);
-      }
-    } finally {
-      closeSilently(entityManager);
+  private void deliver(Activity activity, Session adminSession) {
+    if (activity == null || activity.getActor() == null) {
+      // we must know the actor
+      throw new IllegalStateException(
+          "Could not determine actor of activity: " + activity);
     }
-    return null;
+
+    // Get all the routes for this activity.
+    List<ActivityRoute> routes = activityRouterManager
+        .getActivityRoutes(activity.toContent(), adminSession);
+
+    // Copy the activity items to each endpoint.
+    for (ActivityRoute route : routes) {
+      deliverActivityToFeed(activity, route.getDestination());
+    }
+
+  }
+
+  private void deliverActivityToFeed(Activity activity,
+                                     String activityFeedPath) {
+    // ensure the activityFeed node with the proper type
+    String deliveryPath = StorageClientUtils
+        .newPath(activityFeedPath, activity.getEid());
+    ImmutableMap.Builder<String, Object> contentProperties = ImmutableMap.builder();
+    for (Map.Entry<String, Object> e : activity.toContent().getProperties().entrySet()) {
+      if (!JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY.equals(e.getKey())) {
+        contentProperties.put(e.getKey(), e.getValue());
+      }
+    }
+    contentProperties.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
+        ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE);
+
+    create(deliveryPath, activity.getActor(), contentProperties.build());
+    LOGGER.debug("Delivered an activity: " + activity);
   }
 
 }
