@@ -17,14 +17,9 @@
  */
 package org.sakaiproject.nakamura.activity;
 
-import static org.apache.sling.jcr.resource.JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY;
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_FEED_NAME;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_NAME;
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.LITE_EVENT_TOPIC;
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_ACTOR_ID;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -36,8 +31,8 @@ import org.apache.sling.jcr.resource.JcrResourceConstants;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.osgi.service.event.EventHandler;
-import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.Activity;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
@@ -45,11 +40,6 @@ import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.AclModification;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.AclModification.Operation;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
-import org.sakaiproject.nakamura.api.lite.authorizable.Group;
 import org.sakaiproject.nakamura.api.lite.authorizable.User;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
@@ -68,10 +58,11 @@ import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.servlet.ServletException;
+import javax.persistence.Query;
 
 @Component(immediate = true, metatype = true)
 @Service
@@ -127,7 +118,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
       final ContentManager contentManager = adminSession.getContentManager();
       Content location = contentManager.get(path);
       if (location != null) {
-        this.createActivity(adminSession, location, userId, activityProperties);
+        createActivity(adminSession, location.getPath(), userId, activityProperties);
       }
 
     } catch (ClientPoolException e) {
@@ -135,8 +126,6 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     } catch (StorageClientException e) {
       LOGGER.warn(e.getMessage(), e);
     } catch (AccessDeniedException e) {
-      LOGGER.warn(e.getMessage(), e);
-    } catch (ServletException e) {
       LOGGER.warn(e.getMessage(), e);
     } catch (IOException e) {
       LOGGER.warn(e.getMessage(), e);
@@ -151,90 +140,50 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     }
   }
 
-  protected void createActivity(Session session, Content targetLocation, String userId, Map<String, Object> activityProperties)
-      throws AccessDeniedException, StorageClientException, ServletException, IOException {
+  private void createActivity(Session session, String targetPath, String userId, Map<String, Object> activityProperties)
+      throws AccessDeniedException, StorageClientException, IOException {
     if (userId == null) {
       userId = session.getUserId();
     }
     if (!userId.equals(session.getUserId()) && !User.ADMIN_USER.equals(session.getUserId())) {
       throw new IllegalStateException("Only Administrative sessions may act on behalf of another user for activities");
     }
-    ContentManager contentManager = session.getContentManager();
 
     // create activityStore if it does not exist
-    String path = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_STORE_NAME);
-    if (!contentManager.exists(path)) {
-      contentManager.update(new Content(path, ImmutableMap.<String, Object>of(
-          SLING_RESOURCE_TYPE_PROPERTY, ACTIVITY_STORE_RESOURCE_TYPE)));
-      // set ACLs so that everyone can add activities; anonymous = none.
-      session.getAccessControlManager().setAcl(
-          Security.ZONE_CONTENT,
-          path,
-          new AclModification[]{
-              new AclModification(AclModification.denyKey(User.ANON_USER),
-                  Permissions.ALL.getPermission(), Operation.OP_REPLACE),
-              new AclModification(AclModification.grantKey(Group.EVERYONE),
-                  Permissions.CAN_READ.getPermission(), Operation.OP_REPLACE),
-              new AclModification(AclModification.grantKey(Group.EVERYONE),
-                  Permissions.CAN_WRITE.getPermission(), Operation.OP_REPLACE),
-              new AclModification(AclModification.grantKey(userId),
-                  Permissions.ALL.getPermission(), Operation.OP_REPLACE)});
-    }
+    String path = StorageClientUtils.newPath(targetPath, ACTIVITY_STORE_NAME);
+
     // create activity within activityStore
     String activityPath = StorageClientUtils.newPath(path, createId());
-    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_FEED_NAME);
 
-    if (!contentManager.exists(activityFeedPath)) {
-      contentManager.update(new Content(activityFeedPath, null));
-    }
-    if (!contentManager.exists(activityPath)) {
-      contentManager.update(new Content(activityPath, ImmutableMap.of(
-          JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
-          (Object) ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE)));
-    }
+    create(activityPath, userId, activityProperties);
 
-    // JPA-based activity persistence
-    EntityManager entityManager = null;
-    try {
-      entityManager = entityManagerFactory.createEntityManager();
-      Map<String, Object> props = new HashMap<String,Object>(activityProperties);
-      props.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
-          ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
-      props.put(ActivityConstants.PARAM_ACTOR_ID, userId);
-      props.put(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
-      Activity activity = new Activity(activityPath, new Date(), props);
-      LOGGER.info("Saving Activity to JPA db: " + activity);
-
-      entityManager.getTransaction().begin();
-      entityManager.persist(activity);
-      entityManager.getTransaction().commit();
-      Activity fromDB = entityManager.find(Activity.class, activity.getId());
-      LOGGER.info("Activity from JPA db = " + fromDB);
-      Content contentFromDB = fromDB.toContent();
-      LOGGER.info("Activity from JPA db converted to Content object: " + contentFromDB);
-
-    } finally {
-      closeSilently(entityManager);
-    }
-
-
-    Content activityNode = contentManager.get(activityPath);
-    activityNode.setProperty(PARAM_ACTOR_ID, userId);
-    activityNode.setProperty(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
-    for (String key : activityProperties.keySet()) {
-      activityNode.setProperty(key, activityProperties.get(key));
-    }
-
-    //save the content
-    contentManager.update(activityNode);
-
-    // post the asynchronous OSGi event
+    // post the asynchronous OSGi event for pickup by ActivityDeliverer
     final Dictionary<String, String> properties = new Hashtable<String, String>();
     properties.put(UserConstants.EVENT_PROP_USERID, userId);
     properties.put(ActivityConstants.EVENT_PROP_PATH, activityPath);
     properties.put("path", activityPath);
     properties.put("resourceType", ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
     EventUtils.sendOsgiEvent(properties, LITE_EVENT_TOPIC, eventAdmin);
+  }
+
+  public void create(String activityPath, String actorID, Map<String, Object> properties) {
+    // JPA-based activity persistence
+    EntityManager entityManager = null;
+    try {
+      entityManager = entityManagerFactory.createEntityManager();
+      Map<String, Object> props = new HashMap<String, Object>(properties);
+      props.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
+          ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE);
+      props.put(ActivityConstants.PARAM_ACTOR_ID, actorID);
+      props.put(ActivityConstants.PARAM_SOURCE, StorageClientUtils.getParentObjectPath(activityPath));
+      Activity activity = new Activity(activityPath, new Date(), props);
+      LOGGER.debug("Saving Activity to JPA db: " + activity);
+      entityManager.getTransaction().begin();
+      entityManager.persist(activity);
+      entityManager.getTransaction().commit();
+    } finally {
+      closeSilently(entityManager);
+    }
   }
 
   /**
@@ -284,5 +233,25 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
       }
     }
   }
+
+  @Override
+  public Activity find(String path) {
+    EntityManager entityManager = null;
+    try {
+      entityManager = entityManagerFactory.createEntityManager();
+      StringBuilder queryBuilder = new StringBuilder("SELECT x FROM Activity x WHERE x.eid ='");
+      queryBuilder.append(StorageClientUtils.getObjectName(path)).append("' AND x.parentPath = '");
+      queryBuilder.append(StorageClientUtils.getParentObjectPath(path)).append("'");
+      Query query = entityManager.createQuery(queryBuilder.toString());
+      List results = query.getResultList();
+      if (results != null && !results.isEmpty()) {
+        return (Activity) results.get(0);
+      }
+    } finally {
+      closeSilently(entityManager);
+    }
+    return null;
+  }
+
 }
 

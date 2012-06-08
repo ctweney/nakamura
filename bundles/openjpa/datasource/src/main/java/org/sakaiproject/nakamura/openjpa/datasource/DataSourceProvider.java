@@ -37,10 +37,10 @@ import javax.sql.DataSource;
 public class DataSourceProvider {
 
   public static final String DEFAULT_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
-  public static final String DEFAULT_URL = "jdbc:derby:sling/nakamura.openjpa/db;create=true";
-  public static final String DEFAULT_USERNAME = "sakai";
-  public static final String DEFAULT_PASSWORD = "ironchef";
-  public static final String DEFAULT_DATA_SOURCE_NAME = "nakamura.openjpa";
+  public static final String DEFAULT_URL = "jdbc:derby:sling/nakamura-openjpa/db;create=true";
+  public static final String DEFAULT_USERNAME = "";
+  public static final String DEFAULT_PASSWORD = "";
+  public static final String DEFAULT_DATA_SOURCE_NAME = "nakamura-openjpa";
 
   @Property(value = DEFAULT_DRIVER)
   public static final String DRIVER = "driver";

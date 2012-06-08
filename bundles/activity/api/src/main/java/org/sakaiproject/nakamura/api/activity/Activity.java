@@ -19,6 +19,7 @@
 package org.sakaiproject.nakamura.api.activity;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.openjpa.persistence.jdbc.Index;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 
@@ -52,8 +53,10 @@ public class Activity implements Serializable {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private long id;
 
+  @Index
   private String eid;
 
+  @Index
   private String parentPath;
 
   private String type;
@@ -212,6 +215,9 @@ public class Activity implements Serializable {
   }
 
   private void serializeExtraProperties() {
+    if ( extraProperties == null || extraProperties.isEmpty()) {
+      return;
+    }
     ByteArrayOutputStream baos = null;
     ObjectOutputStream oos = null;
     try {
@@ -229,6 +235,9 @@ public class Activity implements Serializable {
 
   @SuppressWarnings("unchecked")
   private void unserializeExtraProperties() {
+    if ( extraPropertiesBinary == null ) {
+      return;
+    }
     ByteArrayInputStream bais = null;
     ObjectInputStream ois = null;
     try {

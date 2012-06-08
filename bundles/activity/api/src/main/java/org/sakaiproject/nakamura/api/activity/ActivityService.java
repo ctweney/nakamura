@@ -23,12 +23,14 @@ public interface ActivityService {
 
   /**
    * Post an activity event asynchronously, through OSGi. Processed by ActivityPostedHandler.
-   *
-   * @param eventAdmin
    * @param userId     the userID performing the activity
    * @param path       the path to the node the activity is associated with
    * @param attributes attributes, required, and must contain sakai:activity-appid and sakai:activity-type.
    */
   void postActivity(String userId, String path, Map<String, Object> attributes);
+
+  Activity find(String path);
+
+  void create(String activityPath, String actorID, Map<String, Object> properties);
 
 }

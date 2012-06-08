@@ -17,33 +17,29 @@
  */
 package org.sakaiproject.nakamura.activity;
 
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_ACTOR_ID;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.sling.jcr.resource.JcrResourceConstants;
 import org.osgi.service.component.ComponentContext;
-import org.sakaiproject.nakamura.api.activemq.ConnectionFactoryService;
-import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.activity.routing.ActivityRoute;
 import org.sakaiproject.nakamura.activity.routing.ActivityRouterManager;
+import org.sakaiproject.nakamura.api.activemq.ConnectionFactoryService;
+import org.sakaiproject.nakamura.api.activity.Activity;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
-import org.sakaiproject.nakamura.api.lite.content.Content;
-import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map.Entry;
-
-import javax.jcr.RepositoryException;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -63,6 +59,9 @@ public class ActivityDeliverer implements MessageListener {
   protected Repository sparseRepository;
   @Reference
   protected ActivityRouterManager activityRouterManager;
+
+  @Reference
+  protected ActivityService activityService;
 
   public static final Logger LOG = LoggerFactory
       .getLogger(ActivityDeliverer.class);
@@ -115,10 +114,10 @@ public class ActivityDeliverer implements MessageListener {
       final String activityItemPath = message
           .getStringProperty(ActivityConstants.EVENT_PROP_PATH);
       Session session = sparseRepository.loginAdministrative(); 
-      ContentManager contentManager = session.getContentManager();
+
       try {
-        Content activity = contentManager.get(activityItemPath);
-        if (activity == null || !activity.hasProperty(PARAM_ACTOR_ID)) {
+        Activity activity = activityService.find(activityItemPath);
+        if (activity == null || activity.getActor() == null) {
           // we must know the actor
           throw new IllegalStateException(
               "Could not determine actor of activity: " + activity);
@@ -126,11 +125,11 @@ public class ActivityDeliverer implements MessageListener {
   
         // Get all the routes for this activity.
         List<ActivityRoute> routes = activityRouterManager
-            .getActivityRoutes(activity, session);
+            .getActivityRoutes(activity.toContent(), session);
   
         // Copy the activity items to each endpoint.
         for (ActivityRoute route : routes) {
-          deliverActivityToFeed(session, activity, route.getDestination());
+          deliverActivityToFeed(activity, route.getDestination());
         }
       } finally {
         try { 
@@ -146,38 +145,38 @@ public class ActivityDeliverer implements MessageListener {
       LOG.error("Got a repository exception in the activity listener.", e);
     } catch (StorageClientException e) {
       LOG.error("Got a repository exception in the activity listener.", e);
+    } catch (IOException e) {
+      LOG.error("Got a repository exception in the activity listener.", e);
     }
   }
 
   /**
    * Delivers an activity to a feed.
-   * 
-   * @param session
-   *          The session that should be used to do the delivering.
+   *
    * @param activity
    *          The node that represents the activity.
    * @param activityFeedPath
    *          The path that holds the feed where the activity should be delivered.
-   * @throws RepositoryException
+   * @throws IOException
    * @throws StorageClientException 
    * @throws AccessDeniedException 
    */
-  protected void deliverActivityToFeed(Session session, Content activity,
-      String activityFeedPath) throws AccessDeniedException, StorageClientException {
+  protected void deliverActivityToFeed(Activity activity,
+      String activityFeedPath) throws AccessDeniedException, StorageClientException, IOException {
     // ensure the activityFeed node with the proper type
-    ContentManager contentManager = session.getContentManager();
     String deliveryPath = StorageClientUtils
-        .newPath(activityFeedPath, StorageClientUtils.getObjectName(activity.getPath()));
+        .newPath(activityFeedPath, activity.getEid());
     Builder<String, Object> contentProperties = ImmutableMap.builder();
-    for ( Entry<String, Object> e : activity.getProperties().entrySet()) {
+    for ( Entry<String, Object> e : activity.toContent().getProperties().entrySet()) {
       if (!JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY.equals(e.getKey())) {
         contentProperties.put(e.getKey(), e.getValue());
       }
     }
     contentProperties.put(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY,
         ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE);
-    Content content = new Content(deliveryPath, contentProperties.build());
-    contentManager.update(content);
+
+    activityService.create(deliveryPath, activity.getActor(), contentProperties.build());
+
   }
 
 }

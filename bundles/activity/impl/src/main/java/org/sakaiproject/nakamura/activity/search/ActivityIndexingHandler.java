@@ -18,7 +18,6 @@
 package org.sakaiproject.nakamura.activity.search;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
@@ -29,12 +28,9 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrInputDocument;
 import org.osgi.service.event.Event;
+import org.sakaiproject.nakamura.api.activity.Activity;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.lite.Session;
-import org.sakaiproject.nakamura.api.lite.StorageClientException;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
-import org.sakaiproject.nakamura.api.lite.content.Content;
-import org.sakaiproject.nakamura.api.lite.content.ContentManager;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.solr.IndexingHandler;
 import org.sakaiproject.nakamura.api.solr.RepositorySession;
 import org.sakaiproject.nakamura.api.solr.ResourceIndexingService;
@@ -53,18 +49,10 @@ import java.util.Set;
 @Component(immediate = true)
 public class ActivityIndexingHandler implements IndexingHandler {
 
-  // map of properties to be indexed
-  private static final Map<String, String> WHITELISTED_PROPS;
+  @Reference
+  ActivityService activityService;
 
-  static {
-    ImmutableMap.Builder<String, String> propBuilder = ImmutableMap.builder();
-    propBuilder.put("_created", "_created");
-    propBuilder.put(ActivityConstants.PARAM_ACTIVITY_TYPE, "activity-type");
-    propBuilder.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, "activityMessage");
-    WHITELISTED_PROPS = propBuilder.build();
-  }
-
-  private static final Logger logger = LoggerFactory
+  private static final Logger LOGGER = LoggerFactory
       .getLogger(ActivityIndexingHandler.class);
 
   private static final Set<String> CONTENT_TYPES = Sets.newHashSet(
@@ -95,37 +83,24 @@ public class ActivityIndexingHandler implements IndexingHandler {
    *      org.osgi.service.event.Event)
    */
   public Collection<SolrInputDocument> getDocuments(RepositorySession repositorySession,
-      Event event) {
+                                                    Event event) {
     String path = (String) event.getProperty(FIELD_PATH);
 
     List<SolrInputDocument> documents = Lists.newArrayList();
     if (!StringUtils.isBlank(path)) {
-      try {
-        Session session = repositorySession.adaptTo(Session.class);
-        ContentManager cm = session.getContentManager();
-        Content content = cm.get(path);
 
-        if (content != null) {
-          if (!CONTENT_TYPES.contains(content.getProperty("sling:resourceType"))) {
-            return documents;
-          }
-          SolrInputDocument doc = new SolrInputDocument();
-          for (String prop : WHITELISTED_PROPS.keySet()) {
-            Object value = content.getProperty(prop);
-            if (value != null) {
-              doc.addField(WHITELISTED_PROPS.get(prop), value);
-            }
-          }
-          doc.addField(_DOC_SOURCE_OBJECT, content);
-          documents.add(doc);
-        }
-      } catch (StorageClientException e) {
-        logger.warn(e.getMessage(), e);
-      } catch (AccessDeniedException e) {
-        logger.warn(e.getMessage(), e);
+      Activity activity = activityService.find(path);
+
+      if (activity != null) {
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("_created", activity.getOccurrenceDate().getTime());
+        doc.addField("activity-type", activity.getType());
+        doc.addField("activityMessage", activity.getMessage());
+        doc.addField(_DOC_SOURCE_OBJECT, activity.toContent());
+        documents.add(doc);
       }
     }
-    logger.debug("Got documents {} ", documents);
+    LOGGER.debug("Got documents {} ", documents);
     return documents;
   }
 
@@ -136,9 +111,9 @@ public class ActivityIndexingHandler implements IndexingHandler {
    *      org.osgi.service.event.Event)
    */
   public Collection<String> getDeleteQueries(RepositorySession repositorySession,
-      Event event) {
+                                             Event event) {
     List<String> retval = Collections.emptyList();
-    logger.debug("GetDelete for {} ", event);
+    LOGGER.debug("GetDelete for {} ", event);
     String path = (String) event.getProperty(FIELD_PATH);
     String resourceType = (String) event.getProperty("resourceType");
     if (CONTENT_TYPES.contains(resourceType)) {

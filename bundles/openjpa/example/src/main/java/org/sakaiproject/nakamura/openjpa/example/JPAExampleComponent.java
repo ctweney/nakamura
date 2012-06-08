@@ -34,7 +34,7 @@ public class JPAExampleComponent {
 
   private static final Logger LOG = LoggerFactory.getLogger(JPAExampleComponent.class);
 
-  @Reference(target = "(osgi.unit.name=nakamura.openjpa)")
+  @Reference(target = "(osgi.unit.name=nakamura-openjpa)")
   private EntityManagerFactory entityManagerFactory;
 
   @Activate
