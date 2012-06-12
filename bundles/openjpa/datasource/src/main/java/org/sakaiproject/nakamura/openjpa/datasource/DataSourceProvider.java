@@ -18,17 +18,16 @@
 
 package org.sakaiproject.nakamura.openjpa.datasource;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.sling.commons.osgi.PropertiesUtil;
-import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
-import java.sql.Driver;
 import java.util.Hashtable;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -72,17 +71,16 @@ public class DataSourceProvider {
       throw new IllegalArgumentException("Must configure driver, url and dataSourceName");
     }
 
-    BundleContext bndCtx = ctx.getBundleContext();
-
-    // load up the requested driver
-    Class<Driver> driver = bndCtx.getBundle().loadClass(driverName);
-
-    DriverDataSource dataSource = new DriverDataSource(driver, url, username, password);
+    BasicDataSource dataSource = new BasicDataSource();
+    dataSource.setDriverClassName(driverName);
+    dataSource.setUrl(url);
+    dataSource.setUsername(username);
+    dataSource.setPassword(password);
 
     Hashtable<String, String> serviceProps = new Hashtable<String, String>();
     serviceProps.put(DATA_SOURCE_NAME, dataSourceName);
 
-    serviceReg = bndCtx.registerService(DataSource.class.getName(), dataSource, serviceProps);
+    serviceReg = ctx.getBundleContext().registerService(DataSource.class.getName(), dataSource, serviceProps);
   }
 
   @Deactivate

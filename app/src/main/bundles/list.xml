@@ -250,9 +250,9 @@ KERN-1187
 
         <!-- prerequisites for OpenJPA -->
         <bundle>
-          <groupId>commons-dbcp</groupId>
-          <artifactId>commons-dbcp</artifactId>
-          <version>1.4</version>
+          <groupId>org.apache.servicemix.bundles</groupId>
+          <artifactId>org.apache.servicemix.bundles.commons-dbcp</artifactId>
+          <version>1.4_3</version>
         </bundle>
 
         <bundle>
