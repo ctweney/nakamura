@@ -85,7 +85,7 @@ public class ActivityServiceImplTest extends Assert {
         entityManager);
     Mockito.when(entityManager.getTransaction()).thenReturn(Mockito.mock(EntityTransaction.class));
     Mockito.when(entityManager.find(Mockito.eq(Activity.class), Mockito.anyLong())).thenReturn(
-        new Activity("/fake/activity/path", new Date(), null));
+        new ActivityModel("/fake/activity/path", new Date(), null));
     this.activityService.createActivity(adminSession, "/some/arbitrary/path", userID, props);
 
     Mockito.verify(this.activityService.eventAdmin).postEvent(Mockito.any(Event.class));

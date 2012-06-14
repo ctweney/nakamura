@@ -90,7 +90,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
   @Reference
   Repository repository;
 
-  @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.api.activity.jpa)")
+  @Reference(target = "(osgi.unit.name=org.sakaiproject.nakamura.activity.jpa)")
   EntityManagerFactory entityManagerFactory;
 
   @Reference
@@ -103,13 +103,13 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
     EntityManager entityManager = null;
     try {
       entityManager = entityManagerFactory.createEntityManager();
-      StringBuilder queryBuilder = new StringBuilder("SELECT x FROM Activity x WHERE x.eid ='");
+      StringBuilder queryBuilder = new StringBuilder("SELECT x FROM ActivityModel x WHERE x.eid ='");
       queryBuilder.append(StorageClientUtils.getObjectName(path)).append("' AND x.parentPath = '");
       queryBuilder.append(StorageClientUtils.getParentObjectPath(path)).append("'");
       Query query = entityManager.createQuery(queryBuilder.toString());
       List results = query.getResultList();
       if (results != null && !results.isEmpty()) {
-        return (Activity) results.get(0);
+        return (ActivityModel) results.get(0);
       }
     } finally {
       closeSilently(entityManager);
@@ -210,10 +210,10 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
 
   public Activity create(String activityPath, String actorID, Map<String, Object> properties) {
     EntityManager entityManager = null;
-    Activity activity = null;
+    ActivityModel activity = null;
     try {
       entityManager = entityManagerFactory.createEntityManager();
-      activity = new Activity(activityPath, new Date(), properties);
+      activity = new ActivityModel(activityPath, new Date(), properties);
       entityManager.getTransaction().begin();
       entityManager.persist(activity);
       entityManager.getTransaction().commit();

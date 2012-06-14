@@ -18,258 +18,54 @@
 
 package org.sakaiproject.nakamura.api.activity;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.openjpa.persistence.jdbc.Index;
-import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Transient;
-import javax.persistence.Version;
 
-@Entity
-@Access(value = AccessType.FIELD)
-public class Activity implements Serializable {
-
-  private static final long serialVersionUID = 4417073305813161429L;
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private long id;
-
-  @Index
-  private String eid;
-
-  @Index
-  private String parentPath;
-
-  private String type;
-
-  private String message;
-
-  private Date occurrenceDate;
-
-  private String actor;
-
-  @Transient
-  private byte[] extraPropertiesBinary;
-
-  @Transient
-  private Map<String, Serializable> extraProperties;
-
-  @Version
-  private int version;
-
-  public Activity() {
-    // JPA framework requires a no-arg constructor
-  }
-
-  /**
-   * Content constructor for compatibility with Nakamura content.
-   *
-   * @param content Map of properties.
-   */
-  public Activity(String path, Date occurrenceDate, Map<String, Object> content) {
-    this.parentPath = StorageClientUtils.getParentObjectPath(path);
-    this.eid = StorageClientUtils.getObjectName(path);
-    this.occurrenceDate = occurrenceDate;
-
-    if (content != null) {
-      // extract the top-level and "extra" properties
-      for (String key : content.keySet()) {
-        if (ActivityConstants.PARAM_ACTIVITY_TYPE.equals(key)) {
-          this.type = (String) content.get(key);
-        } else if (ActivityConstants.PARAM_ACTIVITY_MESSAGE.equals(key)) {
-          this.message = (String) content.get(key);
-        } else if (ActivityConstants.PARAM_ACTOR_ID.equals(key)) {
-          this.actor = (String) content.get(key);
-        } else {
-          if (extraProperties == null) {
-            extraProperties = new HashMap<String, Serializable>();
-          }
-          extraProperties.put(key, (Serializable) content.get(key));
-        }
-      }
-    }
-  }
+public interface Activity extends Serializable {
 
   /**
    * @return The internally generated ID of this activity.
    */
-  public long getId() {
-    return id;
-  }
+  public long getId();
 
   /**
    * @return The externally generated ID.
    */
-  public String getEid() {
-    return eid;
-  }
+  public String getEid();
 
-  public void setEid(String eid) {
-    this.eid = eid;
-  }
+  public void setEid(String eid);
 
-  public String getParentPath() {
-    return parentPath;
-  }
+  public String getParentPath();
 
-  public void setParentPath(String parentPath) {
-    this.parentPath = parentPath;
-  }
+  public void setParentPath(String parentPath);
 
-  public String getType() {
-    return type;
-  }
+  public String getType();
 
-  public void setType(String type) {
-    this.type = type;
-  }
+  public void setType(String type);
 
-  public String getMessage() {
-    return message;
-  }
+  public String getMessage();
 
-  public void setMessage(String message) {
-    this.message = message;
-  }
+  public void setMessage(String message);
 
-  public Date getOccurrenceDate() {
-    return occurrenceDate;
-  }
+  public Date getOccurrenceDate();
 
-  public void setOccurrenceDate(Date occurred) {
-    this.occurrenceDate = occurred;
-  }
+  public void setOccurrenceDate(Date occurred);
 
-  public String getActor() {
-    return actor;
-  }
+  public String getActor();
 
-  public void setActor(String actor) {
-    this.actor = actor;
-  }
+  public void setActor(String actor);
 
-  @Access(value = AccessType.PROPERTY)
-  protected byte[] getExtraPropertiesBinary() {
-    serializeExtraProperties();
-    return extraPropertiesBinary;
-  }
+  public Map<String, Serializable> getExtraProperties();
 
-  protected void setExtraPropertiesBinary(byte[] extraPropertiesBinary) {
-    this.extraPropertiesBinary = extraPropertiesBinary;
-    unserializeExtraProperties();
-  }
+  public void setExtraProperties(Map<String, Serializable> extraProperties);
 
-  @Transient
-  public Map<String, Serializable> getExtraProperties() {
-    return extraProperties;
-  }
+  public int getVersion();
 
-  public void setExtraProperties(Map<String, Serializable> extraProperties) {
-    this.extraProperties = extraProperties;
-  }
+  public void setVersion(int version);
 
-  public int getVersion() {
-    return version;
-  }
-
-  public void setVersion(int version) {
-    this.version = version;
-  }
-
-  @Transient
-  public Content toContent() {
-    HashMap<String, Object> properties = new HashMap<String, Object>();
-    if (getExtraProperties() != null) {
-      properties.putAll(getExtraProperties());
-    }
-    if (getType() != null) {
-      properties.put(ActivityConstants.PARAM_ACTIVITY_TYPE, getType());
-    }
-    if (getMessage() != null) {
-      properties.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, getMessage());
-    }
-    if (getActor() != null) {
-      properties.put(ActivityConstants.PARAM_ACTOR_ID, getActor());
-    }
-    if ( getOccurrenceDate() != null ) {
-      properties.put("_created", getOccurrenceDate().getTime());
-    }
-    String path = StorageClientUtils.newPath(getParentPath(), getEid());
-    return new Content(path, properties);
-  }
-
-  private void serializeExtraProperties() {
-    if ( extraProperties == null || extraProperties.isEmpty()) {
-      return;
-    }
-    ByteArrayOutputStream baos = null;
-    ObjectOutputStream oos = null;
-    try {
-      baos = new ByteArrayOutputStream();
-      oos = new ObjectOutputStream(baos);
-      oos.writeObject(extraProperties);
-      extraPropertiesBinary = baos.toByteArray();
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to serialize extra properties.", e);
-    } finally {
-      IOUtils.closeQuietly(baos);
-      IOUtils.closeQuietly(oos);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private void unserializeExtraProperties() {
-    if ( extraPropertiesBinary == null ) {
-      return;
-    }
-    ByteArrayInputStream bais = null;
-    ObjectInputStream ois = null;
-    try {
-      bais = new ByteArrayInputStream(extraPropertiesBinary);
-      ois = new ObjectInputStream(bais);
-      extraProperties = (Map<String, Serializable>) ois.readObject();
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to unserialize extra properties.", e);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException("Failed to unserialize extra properties.", e);
-    } finally {
-      IOUtils.closeQuietly(bais);
-      IOUtils.closeQuietly(ois);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return "Activity{" +
-        "id=" + getId() +
-        ", eid='" + getEid() + '\'' +
-        ", actor='" + getActor() + '\'' +
-        ", parentPath='" + getParentPath() + '\'' +
-        ", type='" + getType() + '\'' +
-        ", message='" + getMessage() + '\'' +
-        ", occurrenceDate=" + getOccurrenceDate() +
-        ", extraProperties=" + getExtraProperties() +
-        ", version=" + getVersion() +
-        '}';
-  }
+  public Content toContent();
 
 }
