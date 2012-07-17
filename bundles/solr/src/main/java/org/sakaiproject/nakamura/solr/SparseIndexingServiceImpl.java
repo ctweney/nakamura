@@ -29,6 +29,8 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.solr.common.SolrInputDocument;
 import org.osgi.service.event.Event;
@@ -42,6 +44,7 @@ import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
+import org.sakaiproject.nakamura.api.solr.AllResourceTypeIndexingHandler;
 import org.sakaiproject.nakamura.api.solr.IndexingHandler;
 import org.sakaiproject.nakamura.api.solr.QoSIndexHandler;
 import org.sakaiproject.nakamura.api.solr.RepositorySession;
@@ -74,6 +77,12 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
   private String[] topics;
 
   private Map<String, IndexingHandler> indexers = Maps.newConcurrentMap();
+
+  // allResourceTypeIndexingHandler is unary so that we don't go crazy adding lots of indexers that
+  // look at every resource type. if ever we need more than 1 of these, examine the code carefully!
+  @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
+  private AllResourceTypeIndexingHandler allResourceTypeIndexingHandler;
+
   private IndexingHandler defaultHandler;
   @SuppressWarnings("unchecked")
   private Map<String, String> ignoreCache = new LRUMap(500);
@@ -111,25 +120,26 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
       if (indexingHandler != null) {
         LOGGER.debug("Update action at path:{}  require on {} ", event.getProperty(FIELD_PATH), event);
         Collection<SolrInputDocument> docs = indexingHandler.getDocuments(repositorySession, event);
+        if ( allResourceTypeIndexingHandler != null ) {
+          docs.addAll(allResourceTypeIndexingHandler.getDocuments(repositorySession, event));
+        }
         List<SolrInputDocument> outputDocs = Lists.newArrayList();
-        if ( docs != null ) {
-	        for (SolrInputDocument doc : docs) {
-	          for (String name : doc.getFieldNames()) {
-	            // loop through the fields of the returned docs to make sure they contain
-	            // atleast 1 field that is not a system property. this is not to filter out
-	            // any system properties but to make sure there are more things to index than
-	            // just system properties.
-	            if (!SYSTEM_PROPERTIES.contains(name)) {
-	              try {
-	                addDefaultFields(doc, repositorySession);
-	                outputDocs.add(doc);
-	              } catch (StorageClientException e) {
-	                LOGGER.warn("Failed to index {} cause: {} ", event.getProperty(FIELD_PATH), e.getMessage());
-	              }
-	              break;
-	            }
-	          }
-	        }
+        for (SolrInputDocument doc : docs) {
+          for (String name : doc.getFieldNames()) {
+            // loop through the fields of the returned docs to make sure they contain
+            // atleast 1 field that is not a system property. this is not to filter out
+            // any system properties but to make sure there are more things to index than
+            // just system properties.
+            if (!SYSTEM_PROPERTIES.contains(name)) {
+              try {
+                addDefaultFields(doc, repositorySession);
+                outputDocs.add(doc);
+              } catch (StorageClientException e) {
+                LOGGER.warn("Failed to index {} cause: {} ", event.getProperty(FIELD_PATH), e.getMessage());
+              }
+              break;
+            }
+          }
         }
         return outputDocs;
       } else {
@@ -277,7 +287,7 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
   public void addHandler(String key, IndexingHandler handler) {
     LOGGER.debug("Added New Indexer as {} at {} ",  key,
         handler);
-    indexers.put( key, handler);
+    indexers.put(key, handler);
   }
 
   public void removeHandler(String key, IndexingHandler handler) {

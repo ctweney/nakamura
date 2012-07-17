@@ -40,7 +40,6 @@ import org.sakaiproject.nakamura.api.search.solr.Result;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchBatchResultProcessor;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchConstants;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchException;
-import org.sakaiproject.nakamura.api.search.solr.SolrSearchResultProcessor;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchResultSet;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchServiceFactory;
 import org.sakaiproject.nakamura.api.user.BasicUserInfoService;
@@ -70,10 +69,6 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
 
   @Override
   public void writeResults(SlingHttpServletRequest request, JSONWriter write, Iterator<Result> iterator) throws JSONException {
-    write.object();
-    write.key("results");
-    write.array();
-
     Session session = StorageClientUtils.adaptToSession(request.getResourceResolver()
         .adaptTo(javax.jcr.Session.class));
     try {
@@ -84,7 +79,7 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
         Result result = iterator.next();
 
         String path = result.getPath();
-        Content activityNode = null;
+        Content activityNode;
         try {
           activityNode = contentManager.get(path);
         } catch (AccessDeniedException e) {
@@ -93,7 +88,7 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
         }
         if (activityNode != null) {
           String sourcePath = (String) activityNode.getProperty(ActivityConstants.PARAM_SOURCE);
-          LOGGER.info("Processing {} {} Source = {} ", new Object[]{path, activityNode.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY), sourcePath});
+          LOGGER.debug("Processing {} {} Source = {} ", new Object[]{path, activityNode.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY), sourcePath});
           Content contentNode;
           try {
             contentNode = contentManager.get(sourcePath);
@@ -153,95 +148,6 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
 
     } catch (StorageClientException e) {
       LOGGER.error(e.getMessage(), e);
-    }
-
-    write.endArray();
-    write.endObject();
-  }
-
-  public void writeResult(SlingHttpServletRequest request, JSONWriter write, Result result)
-      throws JSONException {
-    Session session = StorageClientUtils.adaptToSession(request.getResourceResolver()
-        .adaptTo(javax.jcr.Session.class));
-    try {
-      ContentManager contentManager = session.getContentManager();
-      AuthorizableManager authorizableManager = session.getAuthorizableManager();
-      String path = result.getPath();
-      Content activityNode = contentManager.get(path);
-      if (activityNode != null) {
-        String sourcePath = (String) activityNode.getProperty(ActivityConstants.PARAM_SOURCE);
-        LOGGER.info("Processing {} {} Source = {} ", new Object[]{path, activityNode.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY), sourcePath});
-        Content contentNode = null;
-        try {
-          contentNode = contentManager.get(sourcePath);
-        } catch (AccessDeniedException e) {
-          LOGGER.debug(e.getMessage(), e);
-        }
-        write.object();
-        if (contentNode != null) {
-          ExtendedJSONWriter.writeValueMapInternals(write, contentNode.getProperties());
-          ExtendedJSONWriter.writeValueMapInternals(write, StorageClientUtils.getFilterMap(
-              activityNode.getProperties(), null, null, contentNode.getProperties().keySet(), true));
-        } else {
-          write.key("_sourceMissing");
-          write.value(true);
-          ExtendedJSONWriter.writeValueMapInternals(write, activityNode.getProperties());
-        }
-        write.key("who");
-        write.object();
-        try {
-          ExtendedJSONWriter.writeValueMapInternals(write, basicUserInfoService
-              .getProperties(authorizableManager.findAuthorizable((String) activityNode
-                  .getProperty(ActivityConstants.PARAM_ACTOR_ID))));
-        } catch (AccessDeniedException e) {
-          LOGGER.debug(e.getMessage(), e);
-        }
-        write.endObject();
-        if (contentNode != null) {
-          // KERN-1867 Activity feed should return more data about a group
-          if ("sakai/group-home".equals(contentNode.getProperty("sling:resourceType"))) {
-            try {
-              final Authorizable group = authorizableManager.findAuthorizable(PathUtils
-                  .getAuthorizableId(contentNode.getPath()));
-              final Map<String, Object> basicUserInfo = basicUserInfoService
-                  .getProperties(group);
-              if (basicUserInfo != null) {
-                write.key("profile");
-                ExtendedJSONWriter.writeValueMap(write, basicUserInfo);
-              }
-            } catch (AccessDeniedException e) {
-              LOGGER.debug(e.getMessage(), e);
-            }
-          }
-          // KERN-1864 Return comment in activity feed
-          if ("sakai/pooled-content".equals(contentNode.getProperty("sling:resourceType"))) {
-            if ("CONTENT_ADDED_COMMENT".equals(activityNode.getProperty("sakai:activityMessage"))) {
-              // expecting param ActivityConstants.PARAM_SOURCE to contain the path
-              // from the content node to the comment node for this activity.
-              if (activityNode.hasProperty(ActivityConstants.PARAM_SOURCE)) {
-                String sakaiActivitySource = (String) activityNode.getProperty(ActivityConstants.PARAM_SOURCE);
-                if (sakaiActivitySource != null) {
-                  // confirm comment path is related to the current content node.
-                  if (sakaiActivitySource.startsWith(contentNode.getPath())) {
-                    Content commentNode = contentManager.get(sakaiActivitySource);
-                    if (commentNode != null) {
-                      write.key("sakai:comment-body");
-                      write.value(commentNode.getProperty("comment"));
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        write.endObject();
-      } else {
-        ExtendedJSONWriter.writeValueMap(write, result.getProperties());
-      }
-    } catch (AccessDeniedException e) {
-      LOGGER.debug(e.getMessage(), e);
-    } catch (StorageClientException e) {
-      LOGGER.warn(e.getMessage(), e);
     }
   }
 
