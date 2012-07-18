@@ -37,11 +37,11 @@ import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.search.solr.Query;
 import org.sakaiproject.nakamura.api.search.solr.Result;
+import org.sakaiproject.nakamura.api.search.solr.ResultSetFactory;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchBatchResultProcessor;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchConstants;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchException;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchResultSet;
-import org.sakaiproject.nakamura.api.search.solr.SolrSearchServiceFactory;
 import org.sakaiproject.nakamura.api.user.BasicUserInfoService;
 import org.sakaiproject.nakamura.util.ExtendedJSONWriter;
 import org.sakaiproject.nakamura.util.PathUtils;
@@ -61,8 +61,8 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
   private static final Logger LOGGER = LoggerFactory
       .getLogger(LiteAllActivitiesResultProcessor.class);
 
-  @Reference
-  protected SolrSearchServiceFactory searchServiceFactory;
+  @Reference(target = "(type=solr-unsecured)")
+  protected ResultSetFactory resultSetFactory;
 
   @Reference
   protected BasicUserInfoService basicUserInfoService;
@@ -160,7 +160,7 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
   public SolrSearchResultSet getSearchResultSet(SlingHttpServletRequest request,
                                                 Query query) throws SolrSearchException {
 
-    return searchServiceFactory.getSearchResultSet(request, query);
+    return resultSetFactory.processQuery(request, query, false);
   }
 
 }

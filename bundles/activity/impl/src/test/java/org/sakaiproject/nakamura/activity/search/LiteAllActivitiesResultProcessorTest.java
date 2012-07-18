@@ -45,7 +45,7 @@ import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.search.solr.Query;
 import org.sakaiproject.nakamura.api.search.solr.Result;
-import org.sakaiproject.nakamura.api.search.solr.SolrSearchServiceFactory;
+import org.sakaiproject.nakamura.api.search.solr.ResultSetFactory;
 import org.sakaiproject.nakamura.api.user.BasicUserInfoService;
 import org.sakaiproject.nakamura.lite.BaseMemoryRepository;
 import org.sakaiproject.nakamura.util.ExtendedJSONWriter;
@@ -69,7 +69,7 @@ import java.util.Map;
 public class LiteAllActivitiesResultProcessorTest {
 
   private LiteAllActivitiesResultProcessor processor;
-  private SolrSearchServiceFactory solrSearchServiceFactory;
+  private ResultSetFactory resultSetFactory;
   private Repository repository;
   private javax.jcr.Session jcrSession;
   private Session session;
@@ -85,8 +85,8 @@ public class LiteAllActivitiesResultProcessorTest {
   @Before
   public void setup() throws Exception {
     processor = new LiteAllActivitiesResultProcessor();
-    solrSearchServiceFactory = mock(SolrSearchServiceFactory.class);
-    processor.searchServiceFactory = solrSearchServiceFactory;
+    resultSetFactory = mock(ResultSetFactory.class);
+    processor.resultSetFactory = resultSetFactory;
     BasicUserInfoService basicUserInfoService = mock(BasicUserInfoService.class);
     when(basicUserInfoService.getProperties(Matchers.<Authorizable>anyObject())).thenReturn(ImmutableMap.of("firstName", (Object)"Alice", "lastName", "Walter", "email", "alice@example.com"));
     processor.basicUserInfoService = basicUserInfoService;
@@ -245,7 +245,7 @@ public class LiteAllActivitiesResultProcessorTest {
   public void callSearchServiceFactory() throws Exception {
     Query query = mock(Query.class);
     processor.getSearchResultSet(request, query);
-    verify(solrSearchServiceFactory).getSearchResultSet(request, query);
+    verify(resultSetFactory).processQuery(request, query, false);
   }
 
   @After

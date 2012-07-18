@@ -1,7 +1,8 @@
 {
-  "sakai:query-template": "resourceType:sakai/activity",
+  "sakai:query-template": "resourceType:[* TO *]",
   "sakai:query-template-options": {
-      "sort": "_created desc"
+      "sort": "_created desc",
+      "fq":"${_activityJoin}"
   },
   "sakai:query-template-defaults": {
     "sortOn": "_created",

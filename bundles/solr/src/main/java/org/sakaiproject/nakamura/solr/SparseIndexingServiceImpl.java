@@ -17,11 +17,10 @@
  */
 package org.sakaiproject.nakamura.solr;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -29,8 +28,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.solr.common.SolrInputDocument;
 import org.osgi.service.event.Event;
@@ -44,7 +41,6 @@ import org.sakaiproject.nakamura.api.lite.accesscontrol.Permissions;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.Security;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
-import org.sakaiproject.nakamura.api.solr.AllResourceTypeIndexingHandler;
 import org.sakaiproject.nakamura.api.solr.IndexingHandler;
 import org.sakaiproject.nakamura.api.solr.QoSIndexHandler;
 import org.sakaiproject.nakamura.api.solr.RepositorySession;
@@ -54,10 +50,10 @@ import org.sakaiproject.nakamura.solr.handlers.DefaultSparseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component(immediate = true, metatype = true)
 @Service(value = ResourceIndexingService.class)
@@ -77,11 +73,6 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
   private String[] topics;
 
   private Map<String, IndexingHandler> indexers = Maps.newConcurrentMap();
-
-  // allResourceTypeIndexingHandler is unary so that we don't go crazy adding lots of indexers that
-  // look at every resource type. if ever we need more than 1 of these, examine the code carefully!
-  @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
-  private AllResourceTypeIndexingHandler allResourceTypeIndexingHandler;
 
   private IndexingHandler defaultHandler;
   @SuppressWarnings("unchecked")
@@ -120,9 +111,6 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
       if (indexingHandler != null) {
         LOGGER.debug("Update action at path:{}  require on {} ", event.getProperty(FIELD_PATH), event);
         Collection<SolrInputDocument> docs = indexingHandler.getDocuments(repositorySession, event);
-        if ( allResourceTypeIndexingHandler != null ) {
-          docs.addAll(allResourceTypeIndexingHandler.getDocuments(repositorySession, event));
-        }
         List<SolrInputDocument> outputDocs = Lists.newArrayList();
         for (SolrInputDocument doc : docs) {
           for (String name : doc.getFieldNames()) {
@@ -155,10 +143,23 @@ public class SparseIndexingServiceImpl implements IndexingHandler,
     Object o = doc.getFieldValue(_DOC_SOURCE_OBJECT);
     if ( o instanceof Content ) {
       Content content = (Content) o;
-      String[] principals = getReadingPrincipals(repositorySession, Security.ZONE_CONTENT, content.getPath());
-      for (String principal : principals) {
-        doc.addField(FIELD_READERS, principal);
+      boolean writeReaders = true;
+      Object suppressReadersValue = doc.getFieldValue(FIELD_SUPPRESS_READERS);
+      if (suppressReadersValue instanceof String) {
+        if (FIELD_SUPPRESS_READERS.equals(suppressReadersValue)) {
+          writeReaders = false;
+          doc.removeField(FIELD_SUPPRESS_READERS);
+        }
       }
+      if (writeReaders) {
+        String[] principals = getReadingPrincipals(repositorySession, Security.ZONE_CONTENT, content.getPath());
+        for (String principal : principals) {
+          doc.addField(FIELD_READERS, principal);
+        }
+      }else {
+        doc.removeField(FIELD_READERS);
+      }
+
       if ( content.hasProperty(SLING_RESOURCE_TYPE)) {
         doc.setField(FIELD_RESOURCE_TYPE, content.getProperty(SLING_RESOURCE_TYPE));
       }
