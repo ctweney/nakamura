@@ -42,7 +42,7 @@ import java.util.Map;
     @Property(name = "sakai.search.provider", value = "PooledContentNode")})
 public class PooledContentNodeSearchPropertyProvider implements SolrSearchPropertyProvider {
   public static final String POOLED_CONTENT_PROPERTY = "p";
-  public static final String POOLED_CONTENT_NODE_PATH_PROPERTY = "_pNodePath";
+  public static final String POOLED_CONTENT_NODE_PATH_PROPERTY = "_route";
 
   /**
    * @see org.sakaiproject.nakamura.api.search.SearchPropertyProvider#loadUserProperties(org.apache.sling.api.SlingHttpServletRequest, java.util.Map)

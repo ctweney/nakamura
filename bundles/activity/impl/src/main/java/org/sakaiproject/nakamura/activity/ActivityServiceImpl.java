@@ -88,6 +88,7 @@ public class ActivityServiceImpl implements ActivityService, EventHandler {
   @Reference
   protected ActivityRouterManager activityRouterManager;
 
+  @Reference
   EventAdmin eventAdmin;
 
   @Reference

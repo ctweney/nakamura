@@ -41,7 +41,6 @@ import org.sakaiproject.nakamura.api.search.solr.ResultSetFactory;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchBatchResultProcessor;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchConstants;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchException;
-import org.sakaiproject.nakamura.api.search.solr.SolrSearchResultProcessor;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchResultSet;
 import org.sakaiproject.nakamura.api.user.BasicUserInfoService;
 import org.sakaiproject.nakamura.util.ExtendedJSONWriter;
@@ -56,7 +55,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component(immediate = true, metatype = true)
-@Service(value = SolrSearchResultProcessor.class)
+@Service(value = SolrSearchBatchResultProcessor.class)
 @Properties(value = { @Property(name = "service.vendor", value = "The Sakai Foundation"),
     @Property(name =  SolrSearchConstants.REG_PROCESSOR_NAMES, value = "LiteAllActivities") })
 public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultProcessor {
@@ -71,7 +70,6 @@ public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultPr
   @Reference
   protected BasicUserInfoService basicUserInfoService;
 
-  @Override
   public void writeResults(SlingHttpServletRequest request, JSONWriter write, Iterator<Result> iterator) throws JSONException {
     Session session = StorageClientUtils.adaptToSession(request.getResourceResolver()
         .adaptTo(javax.jcr.Session.class));

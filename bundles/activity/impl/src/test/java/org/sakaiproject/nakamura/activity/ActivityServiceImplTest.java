@@ -27,8 +27,8 @@ import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.activity.routing.ActivityRouterManager;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
@@ -56,6 +56,7 @@ public class ActivityServiceImplTest extends Assert {
     this.activityService.eventAdmin = Mockito.mock(EventAdmin.class);
     repository = new BaseMemoryRepository().getRepository();
     this.activityService.repository = repository;
+    this.activityService.activityRouterManager = Mockito.mock(ActivityRouterManager.class);
 
     final Session adminSession = repository.loginAdministrative();
     adminSession.getAuthorizableManager().createUser("joe", "joe", "joe",
@@ -90,8 +91,6 @@ public class ActivityServiceImplTest extends Assert {
         Permissions.CAN_ANYTHING);
     userSession.getAccessControlManager().check(Security.ZONE_CONTENT, storePath,
         Permissions.CAN_READ);
-    userSession.getAccessControlManager().check(Security.ZONE_CONTENT, storePath,
-        Permissions.CAN_WRITE);
     boolean canDelete = false;
     try {
       userSession.getAccessControlManager().check(Security.ZONE_CONTENT, storePath,
@@ -100,15 +99,6 @@ public class ActivityServiceImplTest extends Assert {
     } catch (AccessDeniedException expected) {
     }
     Assert.assertFalse(canDelete);
-
-    boolean canRead = false;
-    try {
-      anonSession.getAccessControlManager().check(Security.ZONE_CONTENT, storePath,
-          Permissions.CAN_READ);
-      canRead = true;
-    } catch (AccessDeniedException expected) {
-    }
-    Assert.assertFalse(canRead);
 
     boolean canWrite = false;
     try {
@@ -122,19 +112,6 @@ public class ActivityServiceImplTest extends Assert {
     // make sure activity feed got created
     Content feed = adminSession.getContentManager().get("/some/arbitrary/path/activityFeed");
     Assert.assertNotNull(feed);
-
-    // make sure at least one activity node exists under the activity store
-    boolean activityFound = false;
-    for (Content item : store.listChildren()) {
-      if (item.getProperty(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY).equals
-          (ActivityConstants.ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE)) {
-        activityFound = true;
-        Assert.assertEquals("alice", item.getProperty(ActivityConstants.PARAM_ACTOR_ID));
-        Assert.assertEquals("/some/arbitrary/path", item.getProperty(ActivityConstants.PARAM_SOURCE));
-        Assert.assertEquals("someVal", item.getProperty("someProp"));
-      }
-    }
-    Assert.assertTrue(activityFound);
 
     adminSession.logout();
     userSession.logout();

@@ -25,8 +25,6 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.solr.client.solrj.util.ClientUtils;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
-import org.sakaiproject.nakamura.api.lite.authorizable.User;
 import org.sakaiproject.nakamura.api.search.solr.SolrSearchPropertyProvider;
 import org.sakaiproject.nakamura.util.PathUtils;
 
@@ -51,35 +49,18 @@ public class WorldActivityFeedSearchPropertyProvider implements SolrSearchProper
    */
   public void loadUserProperties(SlingHttpServletRequest request,
                                  Map<String, String> propertiesMap) {
-
-    // The current user his feed.
-    String user = request.getRemoteUser();
-
-    String path = ActivityUtils.getUserFeed(user);
-    // Encode the path
-    path = ClientUtils.escapeQueryChars(path);
-    propertiesMap.put("_route", path);
-
-    // {!join from=path to=activitysource}readers:anonymous
-    if (User.ANON_USER.equals(user)) {
-      propertiesMap.put("_activityJoin", "{!join from=path to=activitysource}readers:anonymous");
-    } else {
-      propertiesMap.put("_activityJoin", "{!join from=path to=activitysource}(readers:anonymous OR readers:everyone)");
-    }
-
     RequestParameter[] rp = request.getRequestParameters(GROUP_PARAM);
     StringBuilder groupQuery = new StringBuilder("(");
     if (rp != null) {
       for (int i = 0; i < rp.length; i++) {
         String groupID = ClientUtils.escapeQueryChars(PathUtils.toUserContentPath("/group/" + rp[i].getString()));
-        groupQuery.append("path:").append(groupID).append("/activityFeed");
+        groupQuery.append("routes:").append(groupID);
         if (i < rp.length - 1) {
           groupQuery.append(" OR ");
         }
       }
     }
     groupQuery.append(")");
-
     propertiesMap.put("_pGroupQuery", groupQuery.toString());
   }
 
