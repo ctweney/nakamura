@@ -39,6 +39,7 @@ import org.apache.sling.servlets.post.VersioningConfiguration;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.resource.DateParser;
 import org.sakaiproject.nakamura.api.resource.JSONResponse;
 import org.sakaiproject.nakamura.api.resource.lite.SparsePostOperation;
@@ -147,10 +148,13 @@ public class SparsePostServlet extends SlingAllMethodsServlet {
 
   private VersioningConfiguration baseVersioningConfiguration;
 
+  @Reference
+  private ActivityService activityService;
+
   @Override
   public void init() {
     // default operation: create/modify
-    modifyOperation = new ModifyOperation(defaultNodeNameGenerator, dateParser,
+    modifyOperation = new ModifyOperation(activityService, defaultNodeNameGenerator, dateParser,
         getServletContext());
     modifyOperation.setExtraNodeNameGenerators(cachedNodeNameGenerators);
 
@@ -163,10 +167,10 @@ public class SparsePostServlet extends SlingAllMethodsServlet {
     postOperations.put(SlingPostConstants.OPERATION_CHECKIN, new CheckinOperation());
     postOperations.put(SlingPostConstants.OPERATION_CHECKOUT, new CheckoutOperation());
 
-    importOperation = new ImportOperation(defaultNodeNameGenerator);
+    importOperation = new ImportOperation(activityService, defaultNodeNameGenerator);
     importOperation.setExtraNodeNameGenerators(cachedNodeNameGenerators);
     postOperations.put(SlingPostConstants.OPERATION_IMPORT, importOperation);
-    postOperations.put("createTree", new CreateTreeOperation());
+    postOperations.put("createTree", new CreateTreeOperation(activityService));
   }
   
   @Override

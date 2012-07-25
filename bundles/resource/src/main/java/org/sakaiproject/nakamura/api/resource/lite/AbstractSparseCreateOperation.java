@@ -24,6 +24,7 @@ import org.apache.sling.api.resource.ResourceUtil;
 import org.apache.sling.api.servlets.HtmlResponse;
 import org.apache.sling.servlets.post.NodeNameGenerator;
 import org.apache.sling.servlets.post.SlingPostConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.resource.RequestProperty;
@@ -45,7 +46,9 @@ public abstract class AbstractSparseCreateOperation extends AbstractSparsePostOp
    */
   private NodeNameGenerator[] extraNodeNameGenerators;
 
-  public AbstractSparseCreateOperation(NodeNameGenerator defaultNodeNameGenerator) {
+  public AbstractSparseCreateOperation(ActivityService activityService,
+                                       NodeNameGenerator defaultNodeNameGenerator) {
+    super(activityService);
     this.defaultNodeNameGenerator = defaultNodeNameGenerator;
   }
 

@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessControlManager;
@@ -91,7 +92,7 @@ public class DefaultPostProcessorTest {
     defaultPostProcessor = new DefaultPostProcessor();
     defaultPostProcessor.repository = repository;
     defaultPostProcessor.eventAdmin = mock(EventAdmin.class);
-
+    defaultPostProcessor.activityService = mock(ActivityService.class);
     parameters = new HashMap<String, Object[]>();
   }
 
@@ -118,7 +119,6 @@ public class DefaultPostProcessorTest {
     // set up the parameters we'll pass to the process method of the post processor
     session = repository.loginAdministrative("suzy");
     Authorizable funGroup = session.getAuthorizableManager().findAuthorizable("fun-group");
-    DefaultPostProcessor defaultPostProcessor = new DefaultPostProcessor();
 
     // call the object under test
     defaultPostProcessor.process(funGroup, session, mockChange, parameters);

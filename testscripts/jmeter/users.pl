@@ -19,7 +19,7 @@ while ($counter < $users){
     $counter_time++;
     $counter++;
     $val=&create_profile("tester$counter"); 
-    system ("curl $val -F:name=tester$counter -Fpwd=test -FpwdConfirm=test http://admin:admin\@localhost:8080/system/userManager/user.create.html 2> /dev/null  >/dev/null;");
+    system ("curl -e http://localhost:8080 $val -F:name=tester$counter -Fpwd=test -FpwdConfirm=test http://admin:admin\@localhost:8080/system/userManager/user.create.html");
 }
 
 

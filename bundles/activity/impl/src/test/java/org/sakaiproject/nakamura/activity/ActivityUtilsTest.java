@@ -23,16 +23,8 @@ import org.sakaiproject.nakamura.api.activity.ActivityConstants;
 import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.testutils.easymock.AbstractEasyMockTest;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.jcr.RepositoryException;
 
-/**
- *
- */
 public class ActivityUtilsTest extends AbstractEasyMockTest{
 
   @Test
@@ -42,19 +34,6 @@ public class ActivityUtilsTest extends AbstractEasyMockTest{
         + ActivityConstants.ACTIVITY_FEED_NAME;
     String result = ActivityUtils.getUserFeed(user);
     Assert.assertEquals(expected, result);
-  }
-
-  @Test
-  public void testCreateID() throws UnsupportedEncodingException,
-      NoSuchAlgorithmException {
-    List<String> ids = new ArrayList<String>();
-    for (int i = 0; i < 1000; i++) {
-      String s = ActivityUtils.createId();
-      if (ids.contains(s)) {
-        Assert.fail("This id is already in the list.");
-      }
-      ids.add(s);
-    }
   }
 
   @Test

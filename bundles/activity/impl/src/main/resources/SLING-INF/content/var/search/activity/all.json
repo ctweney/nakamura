@@ -1,22 +1,28 @@
 {
-  "sakai:query-template": "resourceType:[* TO *]",
+  "sakai:query-template": "resourceType:[* TO *] ${_pActivityTypeQuery} ${_pActivityMessageQuery}",
   "sakai:query-template-options": {
       "sort": "_created desc",
       "fq":"${_activityJoin}"
   },
-  "sakai:query-template-defaults": {
-    "sortOn": "_created",
-    "sortOrder": "desc"
+  "sakai:query-template-defaults":{
+    "sortOn":"_created",
+    "sortOrder":"desc"
   },
   "sling:resourceType": "sakai/solr-search",
-  "sakai:propertyprovider": "Activity",
-  "sakai:batchresultprocessor": "AllActivities",
+  "sakai:propertyprovider":[ "PublicReadableActivities", "ActivityType", "ActivityMessage" ],
+  "sakai:batchresultprocessor": "LiteAllActivities",
   "sakai:title": "Activity - All System Activities",
   "sakai:shortDescription": "Shows the latest activities in the system.",
   "sakai:description": [
-    "Shows the any activity that the user can read."
+    "Shows any activity in the system that the user can read."
   ],
-  "sakai:response": [
-     "Doing a standard query searching for all nodes matching 'awesomeness'.<br /> Example: Request to: /var/search/sitecontent.json?q=awesomeness<br /><pre class=\"json\">{\n   \"query\": \"//*[jcr:contains(.,\"awesomeness\")]\",\n   \"items\": 25,\n   \"total\": 1,\n   \"results\": [\n       {\n           \"acl\": \"parent\",\n           \"type\": \"webpage\",\n           \"id\": \"awesomeness\",\n           \"sling:resourceType\": \"sakai/page\",\n           \"position\": \"300000\",\n           \"jcr:created\": \"2009-12-21T18:18:15\",\n           \"jcr:mixinTypes\": [\n               \"mix:lockable\"\n           ],\n           \"jcr:primaryType\": \"sling:Folder\",\n           \"title\": \"Awesomeness\"\n       }\n   ]</pre>"
+  "sakai:parameters":[
+    "{\"name\" : \"activityType\", \"description\" : \"Optionally filter by sakai:activity-type (can be multiple).\"}",
+    "{\"name\" : \"activityMessage\", \"description\" : \"Optionally filter by sakai:activityMessage (can be multiple).\"}",
+    "{\"name\" : \"sortOn\", \"description\" : \"The property you want to sort on.\"}",
+    "{\"name\" : \"sortOrder\", \"description\" : \"The way of ordering. 'asc' or 'desc'.\"}"
+  ],
+  "sakai:response":[
+    "Doing a standard query searching for activities with type user.<br /> Example: Request to: /var/search/activity/all.json?activityType=user<br /><pre class=\"json\">{\"items\": 25,\n  \"results\": [{\n    \"sling:resourceType\": \"sakai/user-home\",\n    \"_created\": 1334786266062,\n    \"_id\": \"h-be4ImhEeGhPzMFqeXUGw+\",\n    \"_lastModifiedBy\": \"admin\",\n    \"_lastModified\": 1334786266062,\n    \"_createdBy\": \"admin\",\n    \"_path\": \"a:user-manager-13347862654659898\",\n    \"sakai:activity-source\": \"a:user-manager-13347862654659898\",\n    \"sakai:activity-type\": \"user\",\n    \"sakai:activity-actor\": \"admin\",\n    \"sakai:activity-appid\": \"Authorizable\",\n    \"sakai:activity-templateid\": \"default\",\n    \"sakai:activityMessage\": \"USER_CREATED\",\n    \"users\": {\n      \"admin\": {\n        \"hash\": \"admin\",\n        \"basic\": {\n          \"access\": \"everybody\",\n          \"elements\": {\n            \"lastName\": {\n              \"value\": \"User\"\n            },\n            \"email\": {\n              \"value\": \"admin@sakai.invalid\"\n            },\n            \"firstName\": {\n              \"value\": \"Admin\"\n            }\n          }\n        },\n        \"rep:userId\": \"admin\",\n        \"userid\": \"admin\",\n        \"counts\": {\n        },\n        \"sakai:excludeSearch\": false,\n        \"homePath\": \"/~admin\"\n      }\n    }\n  }\n  ],\n  \"total\": 1\n}</pre>"
   ]
 }

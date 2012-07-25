@@ -21,7 +21,6 @@ import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sakaiproject.nakamura.api.activity.ActivityRoute;
 import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 
 /**

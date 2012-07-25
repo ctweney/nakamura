@@ -38,7 +38,8 @@ import org.apache.sling.servlets.post.Modification;
 import org.apache.sling.servlets.post.ModificationType;
 import org.apache.sling.servlets.post.SlingPostConstants;
 import org.osgi.service.event.EventAdmin;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
@@ -231,6 +232,8 @@ public class DefaultPostProcessor implements LiteAuthorizablePostProcessor {
   @Reference
   protected EventAdmin eventAdmin;
 
+  @Reference
+  protected transient ActivityService activityService;
 
   @Activate
   @Modified
@@ -465,19 +468,7 @@ public class DefaultPostProcessor implements LiteAuthorizablePostProcessor {
             authorizable.setProperty(propName, property.getValue());
           }
           authorizableManager.updateAuthorizable(authorizable);
-          if ( isCreate ) {
-            if ( isGroup ) {
-              ActivityUtils.postActivity(eventAdmin, session.getUserId(), homePath, "Authorizable", "default", "group", "GROUP_CREATED", null);
-            } else {
-              ActivityUtils.postActivity(eventAdmin, session.getUserId(), homePath, "Authorizable", "default", "user", "USER_CREATED", null);
-            }
-          } else {
-            if ( isGroup ) {
-              ActivityUtils.postActivity(eventAdmin, session.getUserId(), homePath, "Authorizable", "default", "group", "GROUP_UPDATED", null);
-            } else {
-              ActivityUtils.postActivity(eventAdmin, session.getUserId(), homePath, "Authorizable", "default", "user", "USER_UPDATED", null);
-            }
-          }
+
         }
       } else {
         // Attempt to sync the Acl on the home folder with whatever is present in the
@@ -511,6 +502,27 @@ public class DefaultPostProcessor implements LiteAuthorizablePostProcessor {
         accessControlManager.setAcl(Security.ZONE_AUTHORIZABLES, authorizable.getId(),
             aclModifications.toArray(new AclModification[aclModifications.size()]));
       }
+
+      // post the activity for this action
+      Map<String, Object> activityProps = new HashMap<String, Object>();
+      activityProps.put(ActivityConstants.PARAM_APPLICATION_ID, "Authorizable");
+      if (isGroup) {
+        activityProps.put(ActivityConstants.PARAM_ACTIVITY_TYPE, "group");
+        if (isCreate) {
+          activityProps.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, "GROUP_CREATED");
+        } else {
+          activityProps.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, "GROUP_UPDATED");
+        }
+      } else {
+        activityProps.put(ActivityConstants.PARAM_ACTIVITY_TYPE, "user");
+        if (isCreate) {
+          activityProps.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, "USER_CREATED");
+        } else {
+          activityProps.put(ActivityConstants.PARAM_ACTIVITY_MESSAGE, "USER_UPDATED");
+        }
+      }
+      activityService.postActivity(session.getUserId(), homePath, activityProps);
+
     } finally {
       if (adminSession != null) {
         adminSession.logout();

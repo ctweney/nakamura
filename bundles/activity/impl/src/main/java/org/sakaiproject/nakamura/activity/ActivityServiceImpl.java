@@ -18,22 +18,29 @@
 package org.sakaiproject.nakamura.activity;
 
 import static org.apache.sling.jcr.resource.JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY;
+import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_FEED_NAME;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_NAME;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.ACTIVITY_STORE_RESOURCE_TYPE;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.LITE_EVENT_TOPIC;
 import static org.sakaiproject.nakamura.api.activity.ActivityConstants.PARAM_ACTOR_ID;
 
 import com.google.common.collect.ImmutableMap;
-
+import com.google.common.collect.Maps;
+import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.jcr.resource.JcrResourceConstants;
+import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import org.osgi.service.event.EventHandler;
+import org.sakaiproject.nakamura.activity.routing.ActivityRoute;
+import org.sakaiproject.nakamura.activity.routing.ActivityRouterManager;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityRoute;
-import org.sakaiproject.nakamura.api.activity.ActivityRouterManager;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
+import org.sakaiproject.nakamura.api.lite.ClientPoolException;
 import org.sakaiproject.nakamura.api.lite.Repository;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
@@ -50,41 +57,112 @@ import org.sakaiproject.nakamura.api.lite.content.ContentManager;
 import org.sakaiproject.nakamura.api.user.UserConstants;
 import org.sakaiproject.nakamura.util.SparseUtils;
 import org.sakaiproject.nakamura.util.osgi.EventUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
-
+import java.util.Map;
 import javax.servlet.ServletException;
 
-@Component(immediate=true, metatype=true)
-@Service(value=ActivityService.class)
-public class ActivityServiceImpl implements ActivityService {
+@Component(immediate = true, metatype = true)
+@Service
+@Properties(value = {
+    @Property(name = "service.vendor", value = "The Sakai Foundation"),
+    @Property(name = "service.description", value = "Event Handler for posting activities from other services.."),
+    @Property(name = "event.topics", value = {
+        "org/sakaiproject/nakamura/activity/POSTED"})})
+public class ActivityServiceImpl implements ActivityService, EventHandler {
 
-  @Reference
-  private Repository repository;
-  
-  @Reference
-  private EventAdmin eventAdmin;
+  public static final Logger LOGGER = LoggerFactory
+      .getLogger(ActivityServiceImpl.class);
 
   @Reference
   protected ActivityRouterManager activityRouterManager;
-  
-  public void createActivity(Session session, Content targetLocation,  String userId, ActivityServiceCallback callback) throws AccessDeniedException, StorageClientException, ServletException, IOException {
-    if ( userId == null ) {
+
+  EventAdmin eventAdmin;
+
+  @Reference
+  Repository repository;
+
+  private static SecureRandom random = null;
+
+  public void postActivity(String userId, String path, Map<String, Object> attributes) {
+    if (attributes == null) {
+      throw new IllegalArgumentException("Map of properties cannot be null");
+    }
+    if (attributes.get(ActivityConstants.PARAM_APPLICATION_ID) == null) {
+      throw new IllegalArgumentException("The sakai:activity-appid parameter must not be null");
+    }
+    if (attributes.get(ActivityConstants.PARAM_ACTIVITY_TYPE) == null) {
+      throw new IllegalArgumentException("The sakai:activity-type parameter must not be null");
+    }
+    Map<String, Object> eventProps = Maps.newHashMap();
+    eventProps.put("path", path);
+    eventProps.put("userid", userId);
+    eventProps.put("attributes", attributes);
+    // handleEvent will pick up this event and call back to create the activity
+    eventAdmin.postEvent(new Event("org/sakaiproject/nakamura/activity/POSTED", eventProps));
+  }
+
+  public void handleEvent(Event event) {
+
+    Session adminSession = null;
+    try {
+      adminSession = repository.loginAdministrative();
+      String path = (String) event.getProperty("path");
+      String userId = (String) event.getProperty("userid");
+      @SuppressWarnings("unchecked")
+      final Map<String, Object> activityProperties = (Map<String, Object>) event.getProperty("attributes");
+
+      final ContentManager contentManager = adminSession.getContentManager();
+      Content location = contentManager.get(path);
+      if (location != null) {
+        this.createActivity(adminSession, location, userId, activityProperties);
+      }
+
+    } catch (ClientPoolException e) {
+      LOGGER.warn(e.getMessage(), e);
+    } catch (StorageClientException e) {
+      LOGGER.warn(e.getMessage(), e);
+    } catch (AccessDeniedException e) {
+      LOGGER.warn(e.getMessage(), e);
+    } catch (ServletException e) {
+      LOGGER.warn(e.getMessage(), e);
+    } catch (IOException e) {
+      LOGGER.warn(e.getMessage(), e);
+    } finally {
+      if (adminSession != null) {
+        try {
+          adminSession.logout();
+        } catch (ClientPoolException e) {
+          LOGGER.warn(e.getMessage(), e);
+        }
+      }
+    }
+  }
+
+  protected void createActivity(Session session, Content targetLocation, String userId, Map<String, Object> activityProperties)
+      throws AccessDeniedException, StorageClientException, ServletException, IOException {
+    if (userId == null) {
       userId = session.getUserId();
     }
-    if ( !userId.equals(session.getUserId()) && !User.ADMIN_USER.equals(session.getUserId()) ) {
+    if (!userId.equals(session.getUserId()) && !User.ADMIN_USER.equals(session.getUserId())) {
       throw new IllegalStateException("Only Administrative sessions may act on behalf of another user for activities");
     }
     ContentManager contentManager = session.getContentManager();
     // create activityStore if it does not exist
     String path = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_STORE_NAME);
     if (!contentManager.exists(path)) {
-      contentManager.update(new Content(path, ImmutableMap.<String, Object> of(
+      contentManager.update(new Content(path, ImmutableMap.<String, Object>of(
           SLING_RESOURCE_TYPE_PROPERTY, ACTIVITY_STORE_RESOURCE_TYPE)));
       // inherit ACL from the target node, but let logged-in users write activities
       session.getAccessControlManager().setAcl(
@@ -95,8 +173,8 @@ public class ActivityServiceImpl implements ActivityService {
                   Permissions.CAN_WRITE.getPermission(), Operation.OP_AND)});
     }
     // create activity within activityStore
-    String activityPath = StorageClientUtils.newPath(path, ActivityUtils.createId());
-    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), "activityFeed");
+    String activityPath = StorageClientUtils.newPath(path, createId());
+    String activityFeedPath = StorageClientUtils.newPath(targetLocation.getPath(), ACTIVITY_FEED_NAME);
 
     if (!contentManager.exists(activityFeedPath)) {
       contentManager.update(new Content(activityFeedPath, null));
@@ -107,19 +185,18 @@ public class ActivityServiceImpl implements ActivityService {
           (Object) ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE)));
     }
 
-    
-    Content activtyNode = contentManager.get(activityPath);
-    callback.processRequest(activtyNode);
-
-    activtyNode = contentManager.get(activityPath);
-    activtyNode.setProperty(PARAM_ACTOR_ID, userId);
-    activtyNode.setProperty(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
+    Content activityNode = contentManager.get(activityPath);
+    activityNode.setProperty(PARAM_ACTOR_ID, userId);
+    activityNode.setProperty(ActivityConstants.PARAM_SOURCE, targetLocation.getPath());
+    for (String key : activityProperties.keySet()) {
+      activityNode.setProperty(key, activityProperties.get(key));
+    }
 
     Session adminSession = repository.loginAdministrative();
     List<String> routesStr = new LinkedList<String>();
     List<String> readers = new LinkedList<String>();
     try {  
-      List<ActivityRoute> routes = activityRouterManager.getActivityRoutes(activtyNode,
+      List<ActivityRoute> routes = activityRouterManager.getActivityRoutes(activityNode,
           adminSession);
       if (routes != null) {
         for (ActivityRoute route : routes) {
@@ -135,7 +212,7 @@ public class ActivityServiceImpl implements ActivityService {
       // pooled content item on which the user performed the activity), therefore we could expose user
       // activity routes there -- that is an exposure of potentially sensitive content such as who the user's
       // connections are.
-      String routesPath = StorageClientUtils.newPath(activtyNode.getPath(), ActivityConstants.PARAM_ROUTES);
+      String routesPath = StorageClientUtils.newPath(activityNode.getPath(), ActivityConstants.PARAM_ROUTES);
       contentManager.update(new Content(routesPath, ImmutableMap.<String, Object>of(
           ActivityConstants.PARAM_ROUTES, routesStr.toArray(new String[routesStr.size()]))));
       adminSession.getAccessControlManager().setAcl(Security.ZONE_CONTENT, routesPath, new AclModification[] {
@@ -154,15 +231,15 @@ public class ActivityServiceImpl implements ActivityService {
           i++;
         }
         
-        adminSession.getAccessControlManager().setAcl(Security.ZONE_CONTENT, activtyNode.getPath(), readerAcls);
+        adminSession.getAccessControlManager().setAcl(Security.ZONE_CONTENT, activityNode.getPath(), readerAcls);
       }
     } finally {
       SparseUtils.logoutQuietly(adminSession);
     }
-    
-    // store the activity node
-    contentManager.update(activtyNode);
-    
+
+    //save the content
+    contentManager.update(activityNode);
+
     // post the asynchronous OSGi event
     final Dictionary<String, String> properties = new Hashtable<String, String>();
     properties.put(UserConstants.EVENT_PROP_USERID, userId);
@@ -170,6 +247,44 @@ public class ActivityServiceImpl implements ActivityService {
     properties.put("path", activityPath);
     properties.put("resourceType", ActivityConstants.ACTIVITY_ITEM_RESOURCE_TYPE);
     EventUtils.sendOsgiEvent(properties, LITE_EVENT_TOPIC, eventAdmin);
+  }
+
+  /**
+   * @return Creates a unique path to an activity in the form of 2010-01-21-09-randombit
+   */
+  static String createId() {
+    Calendar c = Calendar.getInstance();
+
+    String[] vals = new String[4];
+    vals[0] = "" + c.get(Calendar.YEAR);
+    vals[1] = StringUtils.leftPad("" + (c.get(Calendar.MONTH) + 1), 2, "0");
+    vals[2] = StringUtils.leftPad("" + c.get(Calendar.DAY_OF_MONTH), 2, "0");
+    vals[3] = StringUtils.leftPad("" + c.get(Calendar.HOUR_OF_DAY), 2, "0");
+
+    StringBuilder id = new StringBuilder();
+
+    for (String v : vals) {
+      id.append(v).append("-");
+    }
+
+    byte[] bytes = new byte[20];
+    String randomHash = "";
+    try {
+      if (random == null) {
+        random = SecureRandom.getInstance("SHA1PRNG");
+      }
+      random.nextBytes(bytes);
+      randomHash = Arrays.toString(bytes);
+      randomHash = org.sakaiproject.nakamura.util.StringUtils
+          .sha1Hash(randomHash);
+    } catch (NoSuchAlgorithmException e) {
+      LOGGER.error("No SHA algorithm on system?", e);
+    } catch (UnsupportedEncodingException e) {
+      LOGGER.error("Byte encoding not supported?", e);
+    }
+
+    id.append(randomHash);
+    return id.toString();
   }
 
 }

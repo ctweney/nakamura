@@ -24,6 +24,7 @@ import org.apache.sling.api.servlets.HtmlResponse;
 import org.apache.sling.commons.json.JSONException;
 import org.apache.sling.commons.json.JSONObject;
 import org.apache.sling.servlets.post.Modification;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -43,6 +44,10 @@ public class CreateTreeOperation extends AbstractSparsePostOperation {
 
   public static final String TREE_PARAM = "tree";
   public static final String DELETE_PARAM = "delete";
+
+  public CreateTreeOperation(ActivityService activityService) {
+      super(activityService);
+  }
 
   @Override
   protected void doRun(SlingHttpServletRequest request, HtmlResponse response,

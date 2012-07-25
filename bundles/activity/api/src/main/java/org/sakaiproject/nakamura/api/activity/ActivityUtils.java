@@ -17,10 +17,7 @@
  */
 package org.sakaiproject.nakamura.api.activity;
 
-import static org.sakaiproject.nakamura.api.activity.ActivityConstants.EVENT_TOPIC;
-
 import com.google.common.collect.Maps;
-
 import org.apache.commons.lang.StringUtils;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
@@ -32,24 +29,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.Map;
 
 /**
  *
  */
 public class ActivityUtils {
-  
-  private static SecureRandom random = null;
 
-  @SuppressWarnings("rawtypes")
-  public static Event createEvent(String user, String activityItemPath) {
-    final Dictionary<String, String> map = new Hashtable<String, String>(1);
-    map.put("userid", user);
-    map.put(ActivityConstants.EVENT_PROP_PATH, activityItemPath);
-    return new Event(EVENT_TOPIC, (Dictionary) map);
-  }
+  private static SecureRandom random = null;
 
   /**
    * Returns the path to the activity feed for a user.
@@ -65,10 +52,8 @@ public class ActivityUtils {
   /**
    * Get the path from an activity id.
    *
-   * @param id
-   *          The ID for an activity.
-   * @param startPath
-   *          The starting path.
+   * @param id        The ID for an activity.
+   * @param startPath The starting path.
    * @return Given an id '2010-01-21-09-randombit' and startPath '/foo/bar' this will
    *         return '/foo/bar/2010/01/21/09/2010-01-21-09-randombit'.
    */
@@ -125,7 +110,7 @@ public class ActivityUtils {
     id.append(randomHash);
     return id.toString();
   }
-  
+
   /**
    * Post an activity event. processed by activity listeners.
    * @param eventAdmin 

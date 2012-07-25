@@ -37,6 +37,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -66,6 +67,8 @@ public class LiteMessagingServiceImplTest {
   private LockManager lockManager;
   @Mock
   private EventAdmin eventAdmin;
+  @Mock
+  private ActivityService activityService;
 
   private String userName = "joe";
   private String groupName = "g-physics-101-viewers";
@@ -80,6 +83,7 @@ public class LiteMessagingServiceImplTest {
     messagingServiceImpl = new LiteMessagingServiceImpl();
     messagingServiceImpl.lockManager = lockManager;
     messagingServiceImpl.eventAdmin = eventAdmin;
+    messagingServiceImpl.activityService = activityService;
   }
 
   @After
@@ -121,7 +125,7 @@ public class LiteMessagingServiceImplTest {
     assertEquals(10L, StorageClientUtils.toLong(result.getProperty("num")));
     assertEquals("foobar", result.getProperty("s"));
     assertEquals(STATE_NOTIFIED, result.getProperty(PROP_SAKAI_SENDSTATE));
-    verify(eventAdmin, times(2)).postEvent(Matchers.<Event>any());
+    verify(eventAdmin, times(1)).postEvent(Matchers.<Event>any());
   }
 
   @Test

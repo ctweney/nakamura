@@ -45,6 +45,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.osgi.service.event.EventAdmin;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.cluster.ClusterTrackingService;
 import org.sakaiproject.nakamura.api.files.FileUploadHandler;
 import org.sakaiproject.nakamura.api.lite.ClientPoolException;
@@ -134,6 +135,9 @@ public class CreateContentPoolServletTest {
   private EventAdmin eventAdmin;
   @Mock
   private AuthorizableCountChanger authorizableCountChanger;
+  @Mock
+  private ActivityService activityService;
+
   private RepositoryImpl repository;
 
   CreateContentPoolServlet cp;
@@ -249,6 +253,7 @@ public class CreateContentPoolServletTest {
     cp.clusterTrackingService = clusterTrackingService;
     cp.sparseRepository = repository;
     cp.authorizableCountChanger = authorizableCountChanger;
+    cp.activityService = activityService;
   }
 
 

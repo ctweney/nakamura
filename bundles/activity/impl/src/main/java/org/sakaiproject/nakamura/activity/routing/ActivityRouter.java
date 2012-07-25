@@ -15,7 +15,7 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.api.activity;
+package org.sakaiproject.nakamura.activity.routing;
 
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.content.Content;
@@ -24,25 +24,28 @@ import java.util.List;
 
 import javax.jcr.Node;
 
-public interface ActivityRouterManager {
+/**
+ * A router can add/delete/modify an {@link ActivityRoute} in the list. * All the
+ */
+public interface ActivityRouter {
 
   /**
-   * Get all the activity routes where an activity should be delivered.
+   * Route an activity.
    * 
    * @param activity
-   *          The node that represents the activity.
-   * @return Gets all the {@link ActivityRoute} for a specific activity.
+   *          The activity node that should be routed. This node will be retrieved trough
+   *          the admin session.
+   * @param routes
+   *          The list of {@link ActivityRoute} that have already been routed.
    */
-  List<ActivityRoute> getActivityRoutes(Node activity);
+  public void route(Node activity, List<ActivityRoute> routes);
 
   /**
-   * Get all the activity routes where an activity should be delivered.
-   * 
-   * @param activity
-   *          The node that represents the activity.
-   * @param adminSession
-   *          Administrative session to the content store.
-   * @return Gets all the {@link ActivityRoute} for a specific activity.
+   * @return The priority of this router. The higher priority routers will be executed
+   *         first.
    */
-  List<ActivityRoute> getActivityRoutes(Content activity, Session adminSession);
+  public int getPriority();
+
+  public void route(Content activity, List<ActivityRoute> routes, Session adminSession);
+
 }

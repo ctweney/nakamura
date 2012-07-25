@@ -45,6 +45,8 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.json.JSONException;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.connections.ConnectionConstants;
 import org.sakaiproject.nakamura.api.connections.ConnectionException;
 import org.sakaiproject.nakamura.api.connections.ConnectionManager;
@@ -101,7 +103,10 @@ public class ConnectionManagerImpl implements ConnectionManager {
   protected transient Repository repository;
 
   @Reference
+
   protected AuthorizableCountChanger authorizableCountChanger;
+
+  protected transient ActivityService activityService;
 
   private static Map<TransitionKey, StatePair> stateMap = new HashMap<TransitionKey, StatePair>();
 
@@ -275,6 +280,7 @@ public class ConnectionManagerImpl implements ConnectionManager {
                 Permissions.CAN_READ.getPermission(), Operation.OP_REPLACE) };
         accessControlManager.setAcl(Security.ZONE_CONTENT, ConnectionUtils.getConnectionPathBase(thisAu.getId()), aclMods);
         accessControlManager.setAcl(Security.ZONE_CONTENT, ConnectionUtils.getConnectionPathBase(otherAu.getId()), aclMods);
+        postNewContactActivity(thisAu, otherAu);
       } else {
         // This might be an existing connection that needs to be removed
         removeUserFromGroup(thisAu, otherAu, adminSession);
@@ -493,6 +499,15 @@ public class ConnectionManagerImpl implements ConnectionManager {
           node.setProperty(param.getKey(), param.getValue());
         }
     }
+  }
+
+  private void postNewContactActivity(Authorizable actor, Authorizable audience) {
+    Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+        ActivityConstants.PARAM_APPLICATION_ID, "Authorizable",
+        ActivityConstants.PARAM_ACTIVITY_TYPE, "user",
+        ActivityConstants.PARAM_ACTIVITY_MESSAGE, "NEW_CONTACT",
+        ActivityConstants.PARAM_AUDIENCE_ID, new String[]{audience.getId()});
+    activityService.postActivity(actor.getId(), LitePersonalUtils.getHomePath(actor.getId()), activityProps);
   }
 
 }

@@ -15,18 +15,20 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.activity;
+package org.sakaiproject.nakamura.api.activity;
 
-import org.sakaiproject.nakamura.api.lite.StorageClientException;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
-import org.sakaiproject.nakamura.api.lite.content.Content;
+import java.util.Map;
 
-import java.io.IOException;
+public interface ActivityService {
 
-import javax.servlet.ServletException;
-
-public interface ActivityServiceCallback {
-
-  void processRequest(Content activtyNode) throws StorageClientException, ServletException, IOException, AccessDeniedException;
+  /**
+   * Post an activity event asynchronously, through OSGi. Processed by ActivityPostedHandler.
+   *
+   * @param eventAdmin
+   * @param userId     the userID performing the activity
+   * @param path       the path to the node the activity is associated with
+   * @param attributes attributes, required, and must contain sakai:activity-appid and sakai:activity-type.
+   */
+  void postActivity(String userId, String path, Map<String, Object> attributes);
 
 }

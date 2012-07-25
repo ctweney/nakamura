@@ -17,7 +17,11 @@
  */
 package org.sakaiproject.nakamura.api.resource.lite;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceUtil;
@@ -26,6 +30,8 @@ import org.apache.sling.api.wrappers.SlingRequestPaths;
 import org.apache.sling.servlets.post.Modification;
 import org.apache.sling.servlets.post.SlingPostConstants;
 import org.apache.sling.servlets.post.VersioningConfiguration;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.DataFormatException;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
@@ -42,6 +48,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
@@ -53,6 +60,7 @@ import javax.servlet.http.HttpServletResponse;
  * Holds various states and encapsulates methods that are needed to handle a
  * post request.
  */
+@Component(componentAbstract = true)
 public abstract class AbstractSparsePostOperation implements SparsePostOperation {
 
     /**
@@ -60,7 +68,18 @@ public abstract class AbstractSparsePostOperation implements SparsePostOperation
      */
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    /**
+    @Reference
+    protected ActivityService activityService;
+
+    public AbstractSparsePostOperation() {
+
+    }
+
+    public AbstractSparsePostOperation(ActivityService activityService) {
+        this.activityService = activityService;
+    }
+
+  /**
      * Prepares and finalizes the actual operation. Preparation encompasses
      * getting the absolute path of the item to operate on by calling the
      * {@link #getItemPath(SlingHttpServletRequest)} method and setting the
@@ -142,6 +161,12 @@ public abstract class AbstractSparsePostOperation implements SparsePostOperation
                 }
             }
 
+            // post an activity if we have the props for it
+            Map<String, Object> activityProps = getActivityProperties(request);
+            if ( activityProps != null ) {
+                this.activityService.postActivity(request.getRemoteUser(), contentPath, activityProps);
+            }
+
         } catch ( AccessDeniedException e ) {
             log.error("Access Denied {} ",e.getMessage());
             log.debug("Access Denied Cause ", e);
@@ -159,7 +184,33 @@ public abstract class AbstractSparsePostOperation implements SparsePostOperation
 
     }
 
-    protected VersioningConfiguration getVersioningConfiguration(SlingHttpServletRequest request) {
+  private Map<String, Object> getActivityProperties(SlingHttpServletRequest request) {
+        // activity params will come to us prefixed with ":" which tells us not to save them on
+        // the node that's being posted to.
+        RequestParameter messageParam = request.getRequestParameter(SlingPostConstants.RP_PREFIX +
+            ActivityConstants.PARAM_ACTIVITY_MESSAGE);
+        if ( messageParam == null ) {
+          return null;
+        }
+        String appID = "Content";
+        String type = "pooled content";
+        RequestParameter appIDParam = request.getRequestParameter(SlingPostConstants.RP_PREFIX +
+            ActivityConstants.PARAM_APPLICATION_ID);
+        if ( appIDParam != null ) {
+          appID = appIDParam.getString();
+        }
+        RequestParameter typeParam = request.getRequestParameter(SlingPostConstants.RP_PREFIX +
+            ActivityConstants.PARAM_ACTIVITY_TYPE);
+        if ( typeParam != null ) {
+          type = typeParam.getString();
+        }
+        return ImmutableMap.<String, Object>of(
+            ActivityConstants.PARAM_APPLICATION_ID, appID,
+            ActivityConstants.PARAM_ACTIVITY_TYPE, type,
+            ActivityConstants.PARAM_ACTIVITY_MESSAGE, messageParam.getString());
+  }
+
+  protected VersioningConfiguration getVersioningConfiguration(SlingHttpServletRequest request) {
         VersioningConfiguration versionableConfiguration =
             (VersioningConfiguration) request.getAttribute(VersioningConfiguration.class.getName());
         return versionableConfiguration != null ? versionableConfiguration : new VersioningConfiguration();

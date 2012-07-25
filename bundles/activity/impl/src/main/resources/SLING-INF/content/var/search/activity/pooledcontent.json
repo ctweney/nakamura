@@ -1,0 +1,26 @@
+{
+  "sakai:query-template":"path:${_pNodePath}/activityFeed AND resourceType:sakai/activity ${_pActivityTypeQuery} ${_pActivityMessageQuery}",
+  "sakai:query-template-options":{
+    "sort":"${sortOn} ${sortOrder}"
+  },
+  "sakai:query-template-defaults":{
+    "sortOn":"_created",
+    "sortOrder":"desc"
+  },
+  "sling:resourceType":"sakai/solr-search",
+  "sakai:resultprocessor":"LiteAllActivities",
+  "sakai:propertyprovider":[ "PooledContentNode", "ActivityType", "ActivityMessage" ],
+  "sakai:title":"Activity - Pooled Content Feed",
+  "sakai:shortDescription":"Returns recent activity nodes under a Pooled Content node.",
+  "sakai:description":"Returns recent activity nodes under a Pooled Content node.",
+  "sakai:parameters":[
+    "{\"name\" : \"p\", \"description\" : \"The path of the pooled content (such as '/p/1UeiYirUibuh4HWal7yfTKbe').\"}",
+    "{\"name\" : \"activityType\", \"description\" : \"Optionally filter by sakai:activity-type (can be multiple).\"}",
+    "{\"name\" : \"activityMessage\", \"description\" : \"Optionally filter by sakai:activityMessage (can be multiple).\"}",
+    "{\"name\" : \"sortOn\", \"description\" : \"The property you want to sort on.\"}",
+    "{\"name\" : \"sortOrder\", \"description\" : \"The way of ordering. 'asc' or 'desc'.\"}"
+  ],
+  "sakai:response":[
+    "Doing a standard query searching for activities with type \"pooled content\".<br /> Example: Request to: /var/search/activity/pooledcontent.json?p=/p/lkGgsEFMaa&activityType=pooled%20content<br /><pre class=\"json\">{\"items\": 25,\n  \"results\": [{\n    \"_lastModifiedBy\": \"chris\",\n    \"sakai:schemaversion\": \"2\",\n    \"sakai:permissions\": \"public\",\n    \"_mimeType\": \"x-sakai/document\",\n    \"commentCount\": 0,\n    \"_createdBy\": \"admin\",\n    \"_path\": \"lkGgsEFMaa\",\n    \"sakai:allowcomments\": \"true\",\n    \"sakai:showcomments\": \"true\",\n    \"sling:resourceType\": \"sakai/pooled-content\",\n    \"sakai:pooled-content-viewer\": [\n      \"anonymous\",\n      \"everyone\",\n      \"g1\"\n    ],\n    \"_created\": 1334784407725,\n    \"sakai:pooled-content-manager\": [\n      \"g1-manager\",\n      \"bob\"\n    ],\n    \"sakai:pool-content-created-for\": \"bob\",\n    \"_id\": \"ND8l0ImdEeGuBxsmqeXUGw+\",\n    \"sakai:pooled-content-file-name\": \"fdssdf\",\n    \"structure0\": \"{\\\"page1\\\":{\\\"_ref\\\":\\\"id4032655\\\",\\\"_order\\\":0,\\\"_title\\\":\\\"fdssdf\\\",\\\"main\\\":{\\\"_ref\\\":\\\"id4032655\\\",\\\"_order\\\":0,\\\"_title\\\":\\\"fdssdf\\\"}}}\",\n    \"_lastModified\": 1334786462708,\n    \"sakai:copyright\": \"creativecommons\",\n    \"sakai:pooled-content-editor\": [\n    ],\n    \"sakai:forceupdate\": \"true\",\n    \"sakai:activity-source\": \"lkGgsEFMaa\",\n    \"sakai:activity-type\": \"pooled content\",\n    \"sakai:activity-actor\": \"bob\",\n    \"sakai:activity-appid\": \"Content\",\n    \"sakai:activity-templateid\": \"default\",\n    \"sakai:activityMessage\": \"UPDATED_CONTENT\",\n    \"users\": {\n      \"bob\": {\n        \"hash\": \"bob\",\n        \"basic\": {\n          \"access\": \"everybody\",\n          \"elements\": {\n            \"lastName\": {\n              \"value\": \"test\"\n            },\n            \"email\": {\n              \"value\": \"bdsf@fo.com\"\n            },\n            \"firstName\": {\n              \"value\": \"bob\"\n            }\n          }\n        },\n        \"rep:userId\": \"bob\",\n        \"userid\": \"bob\",\n        \"counts\": {\n          \"contentCount\": 1,\n          \"countLastUpdate\": 1334784408119,\n          \"contactsCount\": 0,\n          \"membershipsCount\": 1\n        },\n        \"sakai:excludeSearch\": false,\n        \"homePath\": \"/~bob\"\n      }\n    }\n  }\n  ],\n  \"total\": 1\n}</pre>"
+  ]
+}

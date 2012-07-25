@@ -28,6 +28,7 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.servlets.post.Modification;
 import org.apache.sling.servlets.post.NodeNameGenerator;
 import org.apache.sling.servlets.post.SlingPostConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -51,8 +52,8 @@ public class ImportOperation extends AbstractSparseCreateOperation {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ImportOperation.class);
 
-  public ImportOperation(NodeNameGenerator defaultNodeNameGenerator) {
-    super(defaultNodeNameGenerator);
+  public ImportOperation(ActivityService activityService, NodeNameGenerator defaultNodeNameGenerator) {
+    super(activityService, defaultNodeNameGenerator);
   }
 
   @Override

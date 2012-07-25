@@ -24,9 +24,6 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
-import org.sakaiproject.nakamura.api.activity.ActivityRoute;
-import org.sakaiproject.nakamura.api.activity.ActivityRouter;
-import org.sakaiproject.nakamura.api.activity.ActivityRouterManager;
 import org.sakaiproject.nakamura.api.lite.Session;
 
 import java.util.ArrayList;
@@ -52,7 +49,7 @@ public class ActivityRouterManagerImpl implements ActivityRouterManager {
   /**
    * {@inheritDoc}
    * 
-   * @see org.sakaiproject.nakamura.api.activity.ActivityRouterManager#getActivityRoutes(javax.jcr.Node)
+   * @see ActivityRouterManager#getActivityRoutes(javax.jcr.Node)
    */
   public List<ActivityRoute> getActivityRoutes(Node activity) {
     List<ActivityRoute> routes = new ArrayList<ActivityRoute>();

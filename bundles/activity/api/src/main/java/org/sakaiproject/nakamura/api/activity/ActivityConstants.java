@@ -27,15 +27,26 @@ public interface ActivityConstants {
   /**
    * The property/parameter name for the application id.
    */
-  public static final String PARAM_APPLICATION_ID = "sakai:activity-appid";
+  String PARAM_APPLICATION_ID = "sakai:activity-appid";
+
   /**
-   * The property/parameter name for the template id.
+   * The property/parameter name for the activity type.
    */
-  public static final String PARAM_TEMPLATE_ID = "sakai:activity-templateid";
+  String PARAM_ACTIVITY_TYPE = "sakai:activity-type";
+
+  /**
+   * The property/parameter name for the activity message.
+   */
+  String PARAM_ACTIVITY_MESSAGE = "sakai:activityMessage";
+
   /**
    * The property name for the authorizable who generated the event.
    */
-  public static final String PARAM_ACTOR_ID = "sakai:activity-actor";
+  String PARAM_ACTOR_ID = "sakai:activity-actor";
+  /**
+   * The property name for the list of authorizables who are affected by this event.
+   */
+  String PARAM_AUDIENCE_ID = "sakai:activity-audience";
   /**
    * The property name for the source of the activity.
    */
@@ -50,16 +61,11 @@ public interface ActivityConstants {
   /**
    * The name for the big store where the original activities will be stored.
    */
-  public static final String ACTIVITY_STORE_NAME = "activity";
+  String ACTIVITY_STORE_NAME = "activity";
   /**
    * The name for the big store where the original activities will be copied to.
    */
-  public static final String ACTIVITY_FEED_NAME = "activityFeed";
-
-  /**
-   * JCR folder name for templates.
-   */
-  public static final String TEMPLATE_ROOTFOLDER = "/var/activity/templates";
+  String ACTIVITY_FEED_NAME = "activityFeed";
 
   // Sling:resourceTypes
 
@@ -68,23 +74,21 @@ public interface ActivityConstants {
    * The node with this resourceType will
    * hold the original activity items.
    */
-  public static final String ACTIVITY_STORE_RESOURCE_TYPE = "sakai/activityStore";
-  /**
-   * The sling:resourceType for an activity feed.
-   * The node with this resourceType will be the store
-   * where the activities are copied to.
-   */
-  public static final String ACTIVITY_FEED_RESOURCE_TYPE = "sakai/activityFeed";
+  String ACTIVITY_STORE_RESOURCE_TYPE = "sakai/activityStore";
+
   /**
    * The sling:resourceType for an activity item.
    */
-  public static final String ACTIVITY_ITEM_RESOURCE_TYPE = "sakai/activity";
+  String ACTIVITY_ITEM_RESOURCE_TYPE = "sakai/activity";
 
   /**
    * The sling:resourceType the resource type of the original activity that is posted. Needs to be different from the item that is delivered.
    */
-  public static final String ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE = "sakai/activity-post";
-  /** resource type for resources that are updated */
+  String ACTIVITY_SOURCE_ITEM_RESOURCE_TYPE = "sakai/activity-post";
+
+  /**
+   * resource type for resources that are updated
+   */
   String RESOURCE_UPDATE = "sakai/resource-update";
 
   // Events
@@ -92,18 +96,17 @@ public interface ActivityConstants {
   /**
    * OSGi event that gets triggered when an activity occurs.
    */
-  public static final String EVENT_TOPIC = "org/sakaiproject/nakamura/activity";
-  public static final String LITE_EVENT_TOPIC = "org/sakaiproject/nakamura/lite/activity";
+  String LITE_EVENT_TOPIC = "org/sakaiproject/nakamura/lite/activity";
   /**
    * The property in the event which will hold the location to the original activity.
    */
-  public static final String EVENT_PROP_PATH = "sakai:activity-item-path";
+  String EVENT_PROP_PATH = "sakai:activity-item-path";
   /**
-   * Specifies the privacy settings for the activity. 
+   * Specifies the privacy settings for the activity.
    */
-  public static final String PARAM_ACTIVITY_PRIVACY = "sakai:activity-privacy";
-  
-  public static final String PRIVACY_PUBLIC = "public";
+  String PARAM_ACTIVITY_PRIVACY = "sakai:activity-privacy";
+
+  String PRIVACY_PUBLIC = "public";
 
 
 }

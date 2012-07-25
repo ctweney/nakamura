@@ -19,10 +19,7 @@ package org.sakaiproject.nakamura.activity.routing;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.sakaiproject.nakamura.api.activity.AbstractActivityRoute;
 import org.sakaiproject.nakamura.api.activity.ActivityConstants;
-import org.sakaiproject.nakamura.api.activity.ActivityRoute;
-import org.sakaiproject.nakamura.api.activity.ActivityRouter;
 import org.sakaiproject.nakamura.api.activity.ActivityUtils;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.content.Content;
@@ -47,7 +44,7 @@ public class PersonalActivityRouter implements ActivityRouter {
   /**
    * {@inheritDoc}
    *
-   * @see org.sakaiproject.nakamura.api.activity.ActivityRouter#getPriority()
+   * @see ActivityRouter#getPriority()
    */
   public int getPriority() {
     // We deliver to ourselves first.
@@ -57,7 +54,7 @@ public class PersonalActivityRouter implements ActivityRouter {
   /**
    * {@inheritDoc}
    *
-   * @see org.sakaiproject.nakamura.api.activity.ActivityRouter#route(javax.jcr.Node,
+   * @see ActivityRouter#route(javax.jcr.Node,
    *      java.util.List)
    */
   public void route(Node activity, List<ActivityRoute> routes) {

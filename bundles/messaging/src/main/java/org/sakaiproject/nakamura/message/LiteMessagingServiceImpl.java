@@ -29,6 +29,7 @@ import static org.sakaiproject.nakamura.api.message.MessageConstants.STATE_NONE;
 import static org.sakaiproject.nakamura.api.message.MessageConstants.STATE_NOTIFIED;
 import static org.sakaiproject.nakamura.api.message.MessageConstants.STATE_PENDING;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
@@ -36,7 +37,8 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.StorageClientUtils;
@@ -80,6 +82,9 @@ public class LiteMessagingServiceImpl implements LiteMessagingService {
 
   @Reference
   protected transient EventAdmin eventAdmin;
+
+  @Reference
+  protected transient ActivityService activityService;
 
   private static final Logger LOGGER = LoggerFactory
       .getLogger(LiteMessagingServiceImpl.class);
@@ -148,7 +153,11 @@ public class LiteMessagingServiceImpl implements LiteMessagingService {
         // TODO: perhaps we should check that we have permission to deliver the message, especially if routing is internal:/ 
         ContentManager contentManager = session.getContentManager();
         contentManager.update(msg);
-        ActivityUtils.postActivity(eventAdmin, session.getUserId(), msg.getPath(), "content", "default", "message", "SENT_MESSAGE", null);
+        Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+            ActivityConstants.PARAM_APPLICATION_ID, "Content",
+            ActivityConstants.PARAM_ACTIVITY_TYPE, "message",
+            ActivityConstants.PARAM_ACTIVITY_MESSAGE, "SENT_MESSAGE");
+        activityService.postActivity(session.getUserId(), msg.getPath(), activityProps);
         raisePendingMessageEvent(session, msg);
       } catch (StorageClientException e) {
         LOGGER.warn("StorageClientException on trying to save message."

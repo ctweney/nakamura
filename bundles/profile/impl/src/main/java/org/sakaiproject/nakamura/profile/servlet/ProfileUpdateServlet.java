@@ -17,6 +17,7 @@
  */
 package org.sakaiproject.nakamura.profile.servlet;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
@@ -38,6 +39,8 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.servlets.post.SlingPostConstants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.doc.BindingType;
 import org.sakaiproject.nakamura.api.doc.ServiceBinding;
 import org.sakaiproject.nakamura.api.doc.ServiceDocumentation;
@@ -120,12 +123,15 @@ public class ProfileUpdateServlet extends SlingAllMethodsServlet {
   @Reference(name = "postOperation", referenceInterface = SparsePostOperation.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, policy = ReferencePolicy.DYNAMIC)
   Map<String, SparsePostOperation> postOperations = new ConcurrentHashMap<String, SparsePostOperation>();
 
+  @Reference
+  private ActivityService activityService;
+
   private ComponentContext componentContext;
 
   @Override
   public void init() {
     // default operation: create/modify
-    modifyOperation = new ResourceModifyOperation(getServletContext());
+    modifyOperation = new ResourceModifyOperation(activityService, getServletContext());
   }
   @Override
   protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response)
@@ -161,7 +167,7 @@ public class ProfileUpdateServlet extends SlingAllMethodsServlet {
           + PathUtils.lastElement(profilePath);
       profileService.update(session, profilePath, json, replace, replaceProperties,
           removeTree);
-
+      fireActivity(session.getUserId(), profilePath);
       response.setStatus(200);
       response.getWriter().write("Ok");
       } else {
@@ -169,11 +175,11 @@ public class ProfileUpdateServlet extends SlingAllMethodsServlet {
         HtmlResponse htmlResponse = new JSONResponse();
         htmlResponse.setReferer(request.getHeader("referer"));
         Map<String,String> authzProperties = propertiesToUpdate(request, ImmutableSet.of("picture", "sakai:group-title", "sakai:group-description"));
+        final Resource resource = request.getResource();
+        final Content targetContent = resource.adaptTo(Content.class);
+        final Session session = resource.adaptTo(Session.class);
+        String authId = PathUtils.getAuthorizableId(targetContent.getPath());
         if (!authzProperties.isEmpty()) {
-          final Resource resource = request.getResource();
-          final Content targetContent = resource.adaptTo(Content.class);
-          final Session session = resource.adaptTo(Session.class);
-          String authId = PathUtils.getAuthorizableId(targetContent.getPath());
           AuthorizableManager am = session.getAuthorizableManager();
           Authorizable au = am.findAuthorizable(authId);
           for (Entry<String, String> authzProp : authzProperties.entrySet()) {
@@ -188,6 +194,7 @@ public class ProfileUpdateServlet extends SlingAllMethodsServlet {
         }
         // check for redirect URL if processing succeeded
         if (htmlResponse.isSuccessful()) {
+          fireActivity(authId, targetContent.getPath());
           String redirect = getRedirectUrl(request, htmlResponse);
           if (redirect != null) {
             response.sendRedirect(redirect);
@@ -207,6 +214,15 @@ public class ProfileUpdateServlet extends SlingAllMethodsServlet {
       return;
     }
 
+  }
+
+  private void fireActivity(String userID, String path) {
+    Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+        ActivityConstants.PARAM_APPLICATION_ID, "Authorizable",
+        ActivityConstants.PARAM_ACTIVITY_TYPE, "user",
+        ActivityConstants.PARAM_ACTIVITY_MESSAGE, "PROFILE_UPDATED");
+        //ActivityConstants.PARAM_AUDIENCE_ID, new String[]{audience.getId()});
+    activityService.postActivity(userID, path, activityProps);
   }
 
   private Map<String, String> propertiesToUpdate(SlingHttpServletRequest request,

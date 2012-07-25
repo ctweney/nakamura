@@ -17,6 +17,7 @@
  */
 package org.sakaiproject.nakamura.resource.lite.servlet.post.operations;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import org.apache.sling.api.SlingException;
@@ -28,6 +29,8 @@ import org.apache.sling.api.servlets.HtmlResponse;
 import org.apache.sling.servlets.post.Modification;
 import org.apache.sling.servlets.post.NodeNameGenerator;
 import org.apache.sling.servlets.post.SlingPostConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.lite.StorageClientException;
 import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
 import org.sakaiproject.nakamura.api.lite.content.Content;
@@ -60,9 +63,9 @@ public class ModifyOperation extends AbstractSparseCreateOperation {
    */
   private final SparseFileUploadHandler uploadHandler;
 
-  public ModifyOperation(NodeNameGenerator defaultNodeNameGenerator,
+  public ModifyOperation(ActivityService activityService, NodeNameGenerator defaultNodeNameGenerator,
       DateParser dateParser, ServletContext servletContext) {
-    super(defaultNodeNameGenerator);
+    super(activityService, defaultNodeNameGenerator);
     this.dateParser = dateParser;
     this.uploadHandler = new SparseFileUploadHandler(servletContext);
   }

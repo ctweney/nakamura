@@ -43,7 +43,8 @@ import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.commons.json.JSONException;
 import org.apache.sling.commons.json.io.JSONWriter;
 import org.osgi.service.event.EventAdmin;
-import org.sakaiproject.nakamura.api.activity.ActivityUtils;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.cluster.ClusterTrackingService;
 import org.sakaiproject.nakamura.api.doc.BindingType;
 import org.sakaiproject.nakamura.api.doc.ServiceBinding;
@@ -141,6 +142,9 @@ public class CreateContentPoolServlet extends SlingAllMethodsServlet {
 
   @Reference
   protected transient AuthorizableCountChanger authorizableCountChanger;
+
+  @Reference
+  protected ActivityService activityService;
 
   private static final long serialVersionUID = -5099697955361286370L;
 
@@ -341,7 +345,11 @@ public class CreateContentPoolServlet extends SlingAllMethodsServlet {
 
     contentManager.update(content);
 
-    ActivityUtils.postActivity(eventAdmin, au.getId(), poolId, "Content", "default", "pooled content", "UPDATED_CONTENT", null);
+    Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+        ActivityConstants.PARAM_APPLICATION_ID, "Content",
+        ActivityConstants.PARAM_ACTIVITY_TYPE, "pooled content",
+        ActivityConstants.PARAM_ACTIVITY_MESSAGE, "UPDATED_CONTENT");
+    activityService.postActivity(au.getId(), poolId, activityProps);
 
     // deny anon everything
     // deny everyone everything
@@ -388,7 +396,11 @@ public class CreateContentPoolServlet extends SlingAllMethodsServlet {
       AclModification.addAcl(true, Permissions.CAN_MANAGE, au.getId(), modifications);
       accessControlManager.setAcl(Security.ZONE_CONTENT, poolId, modifications.toArray(new AclModification[modifications.size()]));
 
-      ActivityUtils.postActivity(eventAdmin, au.getId(), poolId, "Content", "default", "pooled content", "CREATED_FILE", null);
+      Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+          ActivityConstants.PARAM_APPLICATION_ID, "Content",
+          ActivityConstants.PARAM_ACTIVITY_TYPE, "pooled content",
+          ActivityConstants.PARAM_ACTIVITY_MESSAGE, "CREATED_FILE");
+      activityService.postActivity(au.getId(), poolId, activityProps);
     } else if (alternativeStream != null && alternativeStream.indexOf("-") > 0) {
       String[] alternativeStreamParts = StringUtils.split(alternativeStream, ALTERNATIVE_STREAM_SELECTOR_SEPARATOR);
       String pageId = alternativeStreamParts[0];
@@ -398,15 +410,16 @@ public class CreateContentPoolServlet extends SlingAllMethodsServlet {
           POOLED_CONTENT_RT));
       contentManager.update(alternativeContent);
       contentManager.writeBody(alternativeContent.getPath(), value.getInputStream(), previewSize);
-      ActivityUtils.postActivity(eventAdmin, au.getId(), poolId, "Content", "default",
-          "pooled content", "CREATED_ALT_FILE",
-          ImmutableMap.<String, Object> of("altPath", poolId + "/" + pageId));
     } else {
       Content content = contentManager.get(poolId);
       content.setProperty(StorageClientUtils.getAltField(Content.MIMETYPE_FIELD, alternativeStream), contentType);
       contentManager.update(content);
       contentManager.writeBody(poolId, value.getInputStream(),alternativeStream);
-      ActivityUtils.postActivity(eventAdmin, au.getId(), poolId, "Content", "default", "pooled content", "UPDATED_FILE", null);
+      Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+          ActivityConstants.PARAM_APPLICATION_ID, "Content",
+          ActivityConstants.PARAM_ACTIVITY_TYPE, "pooled content",
+          ActivityConstants.PARAM_ACTIVITY_MESSAGE, "UPDATED_FILE");
+      activityService.postActivity(au.getId(), poolId, activityProps);
     }
     return contentManager.get(poolId);
   }

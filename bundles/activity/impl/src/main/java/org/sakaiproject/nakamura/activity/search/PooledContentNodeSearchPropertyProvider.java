@@ -15,7 +15,7 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.files.pool;
+package org.sakaiproject.nakamura.activity.search;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -39,7 +39,7 @@ import java.util.Map;
 @Properties({
     @Property(name = "service.vendor", value = "The Sakai Foundation"),
     @Property(name = "service.description", value = "Translates an external Pooled Content path to a Node path for searching."),
-    @Property(name = "sakai.search.provider", value = "PooledContentNode") })
+    @Property(name = "sakai.search.provider", value = "PooledContentNode")})
 public class PooledContentNodeSearchPropertyProvider implements SolrSearchPropertyProvider {
   public static final String POOLED_CONTENT_PROPERTY = "p";
   public static final String POOLED_CONTENT_NODE_PATH_PROPERTY = "_pNodePath";
@@ -58,6 +58,9 @@ public class PooledContentNodeSearchPropertyProvider implements SolrSearchProper
         String safePath = ClientUtils.escapeQueryChars(pooledContent.getPath());
         propertiesMap.put(POOLED_CONTENT_NODE_PATH_PROPERTY, safePath);
       }
+    }
+    if (propertiesMap.get(POOLED_CONTENT_NODE_PATH_PROPERTY) == null) {
+      propertiesMap.put(POOLED_CONTENT_NODE_PATH_PROPERTY, "nonexistent node path to make result set come up empty");
     }
   }
 

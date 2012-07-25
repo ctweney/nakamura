@@ -20,8 +20,6 @@ package org.sakaiproject.nakamura.activity.routing;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sakaiproject.nakamura.api.activity.ActivityRoute;
-import org.sakaiproject.nakamura.api.activity.ActivityRouter;
 import org.sakaiproject.nakamura.api.lite.Session;
 import org.sakaiproject.nakamura.api.lite.content.Content;
 import org.sakaiproject.nakamura.testutils.easymock.AbstractEasyMockTest;

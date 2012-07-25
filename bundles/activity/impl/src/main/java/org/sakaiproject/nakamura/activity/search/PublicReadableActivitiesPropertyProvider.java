@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Sakai Foundation (SF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -15,37 +15,8 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.api.activity;
 
-/**
- * An abstract implementation of an {@link ActivityRoute}
- */
-public abstract class AbstractActivityRoute implements ActivityRoute {
+package org.sakaiproject.nakamura.activity.search;
 
-  private String[] readers;
-  
-  private String destination;
-
-  public AbstractActivityRoute(String destination, String[] readers) {
-    this.destination = destination;
-    this.readers = readers;
-  }
-
-  /**
-   * {@inheritDoc}
-   * 
-   * @see org.sakaiproject.nakamura.api.activity.ActivityRoute#getDestination()
-   */
-  public String getDestination() {
-    return destination;
-  }
-  
-  /**
-   * {@inheritDoc}
-   * @see org.sakaiproject.nakamura.api.activity.ActivityRoute#getReaders()
-   */
-  public String[] getReaders() {
-    return readers;
-  }
-
+public class PublicReadableActivitiesPropertyProvider {
 }

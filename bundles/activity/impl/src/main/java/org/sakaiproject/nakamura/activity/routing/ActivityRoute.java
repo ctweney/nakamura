@@ -15,19 +15,21 @@
  * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.sakaiproject.nakamura.activity;
+package org.sakaiproject.nakamura.activity.routing;
 
-import org.sakaiproject.nakamura.api.lite.Session;
-import org.sakaiproject.nakamura.api.lite.StorageClientException;
-import org.sakaiproject.nakamura.api.lite.accesscontrol.AccessDeniedException;
-import org.sakaiproject.nakamura.api.lite.content.Content;
+/**
+ *
+ */
+public interface ActivityRoute {
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
-public interface ActivityService {
-
-  void createActivity(Session session, Content location, String userId, ActivityServiceCallback activityServiceCallback) throws AccessDeniedException, StorageClientException, ServletException, IOException;
+  /**
+   * @return The user ids who should be able to read the activity.
+   */
+  public String[] getReaders();
+  
+  /**
+   * @return The destination for an activity.
+   */
+  public String getDestination();
 
 }

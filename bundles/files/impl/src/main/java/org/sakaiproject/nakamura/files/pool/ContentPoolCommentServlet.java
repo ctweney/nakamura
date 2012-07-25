@@ -36,6 +36,8 @@ import org.apache.sling.api.servlets.OptingServlet;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.apache.sling.commons.json.JSONException;
+import org.sakaiproject.nakamura.api.activity.ActivityConstants;
+import org.sakaiproject.nakamura.api.activity.ActivityService;
 import org.sakaiproject.nakamura.api.doc.BindingType;
 import org.sakaiproject.nakamura.api.doc.ServiceBinding;
 import org.sakaiproject.nakamura.api.doc.ServiceDocumentation;
@@ -124,6 +126,8 @@ public class ContentPoolCommentServlet extends SlingAllMethodsServlet implements
   private Repository repository;
   @Reference
   private BasicUserInfoService basicUserInfoService;
+  @Reference
+  private ActivityService activityService;
 
   /**
    * Determine if we will accept this request. Had to add this because something is
@@ -316,6 +320,12 @@ public class ContentPoolCommentServlet extends SlingAllMethodsServlet implements
       Content comment = new Content(path, commentPropertiesBuilder.build());
 
       contentManager.update(comment);
+
+      Map<String, Object> activityProps = ImmutableMap.<String, Object>of(
+          ActivityConstants.PARAM_APPLICATION_ID, "Content",
+          ActivityConstants.PARAM_ACTIVITY_TYPE, "pooled content",
+          ActivityConstants.PARAM_ACTIVITY_MESSAGE, "CREATED_COMMENT");
+      activityService.postActivity(currentUser.getId(), path, activityProps);
 
       response.setStatus(statusCode);
       // return the comment id created for this comment
