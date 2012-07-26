@@ -57,7 +57,7 @@ import java.util.Map;
 @Component(immediate = true, metatype = true)
 @Service(value = SolrSearchBatchResultProcessor.class)
 @Properties(value = { @Property(name = "service.vendor", value = "The Sakai Foundation"),
-    @Property(name =  SolrSearchConstants.REG_PROCESSOR_NAMES, value = "LiteAllActivities") })
+    @Property(name =  SolrSearchConstants.REG_BATCH_PROCESSOR_NAMES, value = "LiteAllActivities") })
 public class LiteAllActivitiesResultProcessor implements SolrSearchBatchResultProcessor {
 
 
