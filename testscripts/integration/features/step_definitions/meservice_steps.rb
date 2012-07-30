@@ -3,11 +3,16 @@
 
 Given /^I have a user called "([^"]*)"$/ do |username|
   m = Time.now.to_f.to_s.gsub(".", "")
+  @s.switch_user(SlingUsers::User.admin_user())
   @user = @um.create_user(username + m)
 end
 
 Given /^I have logged in as "([^"]*)"$/ do |username|
   @s.switch_user(@user)
+end
+
+Given /^I log out$/ do
+  @s.switch_user(SlingUsers::User.anonymous)
 end
 
 When /^I request the Me feed$/ do
