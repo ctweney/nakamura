@@ -2,14 +2,17 @@
 @commentid
 
 When /^I grant everyone permission to read the file$/ do
-  managepost = @fm.manage_members(@poolid, [ "everyone" ], [], [], [])
-  @log.info(managepost)
+  olduser = @s.get_user()
+  @s.switch_user(SlingUsers::User.admin_user())
+  @fm.manage_members(@poolid, [ "everyone" ], [], [], [])
+  @s.switch_user(olduser)
 end
 
 When /^I grant everyone permission to manage the file$/ do
+  olduser = @s.get_user()
   @s.switch_user(SlingUsers::User.admin_user())
-  managepost = @fm.manage_members(@poolid, ["everyone"], [], [ "everyone" ], [])
-  @log.info(managepost.body)
+  @fm.manage_members(@poolid, ["everyone"], [], [ "everyone" ], [])
+  @s.switch_user(olduser)
 end
 
 Then /^A brand-new file has no comments on it$/ do
@@ -44,12 +47,10 @@ Then /^Check that the comment was posted$/ do
   raise "The user hash was not recorded" unless comment["hash"] == @user.name
   raise "The comment author's profile is not present" unless comment["basic"]["elements"]["lastName"] != nil
   commentnodeget = @s.execute_get(@s.url_for("/p/#{@commentid}"))
-  @log.info(commentnodeget)
+  @log.info("Comment ID = #{@commentid}")
   commentnodejson = JSON.parse(commentnodeget.body)
   raise "prop1 should have been stored" unless commentnodejson["prop1"] == "KERN-1536 allow arbitrary properties to be stored on a comment"
-  contentget = @s.execute_get(@fileinfinityurl)
-  contentjson = JSON.parse(contentget.body)
-  raise "The comment count did not increment" unless contentjson["commentCount"] == 1
+  verify_comment_count(1)
 end
 
 Then /^Edit an existing comment$/ do
@@ -60,14 +61,14 @@ Then /^Edit an existing comment$/ do
   commentget = @s.execute_get(commenturl)
   json = JSON.parse(commentget.body)
   raise "The comment body is not present" unless json["comments"][0]["comment"] == "modified witty"
-  contentget = @s.execute_get(@fileinfinityurl)
-  contentjson = JSON.parse(contentget.body)
-  raise "The comment count should still be 1" unless contentjson["commentCount"] == 1
+  verify_comment_count(1)
 end
 
 Then /^Edit an existing comment as a non-managing viewer/ do
   posturl = @s.url_for("/p/#{@poolid}.comments")
   commentpost = @s.execute_post(posturl, { "comment" => "alice's witty rejoinder", "commentId" => @commentid})
+  @log.info(commentpost)
+  @log.info(commentpost.body)
   raise "Edit the existing comment as a non-managing user should not be possible" unless commentpost.code.to_i == 403
 end
 
@@ -79,11 +80,21 @@ Then /^Edit an existing comment as a manager$/ do
 end
 
 Then /^Delete an existing comment$/ do
-  @log.level = Logger::DEBUG
-  deleteresponse = @s.delete_file(@s.url_for("/p/#{@poolid}.comments?commentId=#{@commentid}"))
-  @log.info(deleteresponse)
+  id = @commentid.split("/")[-1]
+  deleteresponse = @s.delete_file(@s.url_for("/p/#{@poolid}.comments"), { "commentId" => id })
   raise "Delete comment should have returned HTTP No Content" unless deleteresponse.code.to_i == 204
+  verify_comment_count(0)
+end
+
+Then /^Delete an existing comment without the rights to do so$/ do
+  id = @commentid.split("/")[-1]
+  deleteresponse = @s.delete_file(@s.url_for("/p/#{@poolid}.comments"), { "commentId" => id })
+  raise "Non-manager should not be able to delete content" unless deleteresponse.code.to_i == 403
+  verify_comment_count(1)
+end
+
+def verify_comment_count(count)
   contentget = @s.execute_get(@fileinfinityurl)
   contentjson = JSON.parse(contentget.body)
-  raise "The comment count should now be 0" unless contentjson["commentCount"] == 0
+  raise "The comment count should still be #{count}" unless contentjson["commentCount"] == count
 end

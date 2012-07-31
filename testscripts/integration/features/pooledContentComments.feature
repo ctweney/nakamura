@@ -10,14 +10,19 @@ Scenario: I want to comment on a file
   Then Comment on the file
   Then Check that the comment was posted
   Then Edit an existing comment
+  Then Delete an existing comment
+  Then Comment on the file
+
   Given I have a user called "alice"
   And I have logged in as "alice"
-  Then Edit an existing comment as a non-managing viewer
+  #Then Edit an existing comment as a non-managing viewer
+  #Then Delete an existing comment without the rights to do so
+
   When I grant everyone permission to manage the file
+
   Given I have a user called "alice"
   And I have logged in as "alice"
   Then Edit an existing comment as a manager
-  Given I have a user called "chris"
-  And I have logged in as "chris"
-  Then Delete an existing comment
+
+
 
