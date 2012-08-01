@@ -109,3 +109,14 @@ Then /^User cannot see acl$/ do
   aclget = @s.execute_get(@s.url_for("/p/#{@poolid}.acl.json"))
   raise "User should not be able to see acl" unless aclget.code.to_i == 404
 end
+
+Then /^I see the correct list of viewers, editors, and managers on the file$/ do
+  memberget = @s.execute_get(@s.url_for("/p/#{@poolid}.members.json"))
+  @log.debug(memberget.body)
+  json = JSON.parse(memberget.body)
+  raise "There should be 2 managers" unless json["managers"].length == 2
+  raise "Bob should be a manager" unless json["managers"][0]["hash"] == @bob.name || json["managers"][1]["hash"] == @bob.name
+  raise "Alice should be a manager" unless json["managers"][0]["hash"] == @alice.name || json["managers"][1]["hash"] == @alice.name
+  raise "Ted should be an editor" unless json["editors"].length == 1 && json["editors"][0]["hash"] == @ted.name
+  raise "Carol should be a viewer" unless json["viewers"].length == 1 && json["viewers"][0]["hash"] == @carol.name
+end

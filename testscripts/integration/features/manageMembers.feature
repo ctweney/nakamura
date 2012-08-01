@@ -60,3 +60,12 @@ Scenario: I want to set the manager of a pooled content item
   Given I have logged in as "alice"
   And User cannot see acl
   And User cannot read file
+
+Scenario: I want to see who has permissions on a pooled content item
+  Given I have logged in as "bob"
+  When I create a new file
+  And I grant "carol" permission to view the file
+  And I grant "ted" permission to edit the file
+  And I grant "alice" permission to manage the file
+
+  Then I see the correct list of viewers, editors, and managers on the file
