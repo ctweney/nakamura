@@ -1,4 +1,4 @@
-Feature: Create pooled content
+Feature: Creating and modifying pooled content
 
 Scenario: I want to create and modify a file
   And I have logged in as "ted"
