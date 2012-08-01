@@ -5,6 +5,7 @@ Scenario: I want to create and modify a file
   When I create a new file
   Then I check the properties of the new file
   Then I check the body content of the new file
+  Then I check the json feed of the new file
   Then I change the body content
 
 Scenario: As an anonymous user, I want to create content

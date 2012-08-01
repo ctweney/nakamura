@@ -69,3 +69,13 @@ Scenario: I want to see who has permissions on a pooled content item
   And I grant "alice" permission to manage the file
 
   Then I see the correct list of viewers, editors, and managers on the file
+
+Scenario: A non-manager tries to manage an item
+  Given I have logged in as "bob"
+  When I create a new file
+  And I grant "ted" permission to edit the file
+  And I grant "carol" permission to view the file
+
+  Given I have logged in as "ted"
+  Then Make sure user can not manage an item without manage permission
+

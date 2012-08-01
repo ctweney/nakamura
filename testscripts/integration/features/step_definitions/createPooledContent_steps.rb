@@ -56,6 +56,11 @@ Then /^I check the properties of the new pooled content/ do
   raise "sakai:pooled-content-manager should be the test user" unless item["sakai:pooled-content-manager"][0] == @user.name
 end
 
+Then /^I check the json feed of the new file$/ do
+  filejson = @s.execute_get(@fileinfinityurl)
+  raise "Failed to get poolid.infinity.json" unless filejson.code.to_i == 200
+end
+
 Then /^I check the body content of the new file$/ do
   filebodyhttpresponse = @s.execute_get(@fileurl)
   raise "Could not fetch file content!" unless filebodyhttpresponse.code.to_i == 200
