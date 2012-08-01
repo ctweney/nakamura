@@ -73,6 +73,10 @@ end
 
 Then /^Edit an existing comment as a manager$/ do
   posturl = @s.url_for("/p/#{@poolid}.comments")
+  @log.info(posturl)
+  @log.info(@commentid)
+  @log.info(@s)
+  @log.info(@user)
   commentpost = @s.execute_post(posturl, { "comment" => "alice's managerial rejoinder", "commentId" => @commentid})
   raise "Edit the existing comment as manager should be possible" unless commentpost.code.to_i == 200
 end

@@ -9,4 +9,18 @@ Before do
   @um = UserManager.new(@s)
   @fm = SlingFile::FileManager.new(@s)
   @log = Logger.new(STDOUT)
+  @m = Time.now.to_f.to_s.gsub(".", "")
+
+  # users
+  @bob = @um.create_user("bob" + @m)
+  @carol = @um.create_user("carol" + @m)
+  @ted = @um.create_user("ted" + @m)
+  @alice = @um.create_user("alice" + @m)
+  @users = {
+      "bob" => @bob,
+      "carol" => @carol,
+      "ted" => @ted,
+      "alice" => @alice
+  }
+
 end

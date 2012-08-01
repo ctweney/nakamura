@@ -2,12 +2,13 @@
 @user
 
 Given /^I have a user called "([^"]*)"$/ do |username|
-  m = Time.now.to_f.to_s.gsub(".", "")
   @s.switch_user(SlingUsers::User.admin_user())
-  @user = @um.create_user(username + m)
+  @user = @um.create_user(username + @m)
+  @users[username] = @user
 end
 
 Given /^I have logged in as "([^"]*)"$/ do |username|
+  @user = @users[username]
   @s.switch_user(@user)
 end
 
