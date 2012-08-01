@@ -81,6 +81,14 @@ end
 Then /^I create an alternative stream of a file$/ do
   altstreampost = @fm.upload_pooled_file("file1", "page1 large contents", "text/plain", "#{@poolid}.page1-large")
   raise "Alternative stream of file could not be created" unless altstreampost.code.to_i == 200
-  altstreamget = @s.execute_get(@s.url_for("/p/#{@poolid}/page1"))
-  raise "Alternative stream of file could not be fetched" unless altstreampost.code.to_i == 200
+end
+
+Then /^I get the alternative stream$/ do
+  altstreamget = @s.execute_get(@s.url_for("/p/#{@poolid}/page1.large.txt"))
+  raise "Alternative stream of file could not be fetched" unless altstreamget.code.to_i == 200
+  raise "Alternative stream content is incorrect" unless altstreamget.body == "page1 large contents"
+  altstreampropsget = @s.execute_get(@s.url_for("/p/#{@poolid}/page1.json"))
+  raise "Alternative stream of file could not be fetched" unless altstreampropsget.code.to_i == 200
+  json = JSON.parse(altstreampropsget.body)
+  raise "Alternative stream does not have proper resource type" unless json["sling:resourceType"] == "sakai/pooled-content"
 end

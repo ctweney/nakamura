@@ -35,3 +35,4 @@ Scenario: I want to create a file with alternative streams
   And I have logged in as "chris"
   When I create a new file
   Then I create an alternative stream of a file
+  Then I get the alternative stream
