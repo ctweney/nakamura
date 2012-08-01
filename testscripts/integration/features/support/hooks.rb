@@ -23,4 +23,12 @@ Before do
       "alice" => @alice
   }
 
+  # set log level if an environment var is passed in. Values from Logger::Severity:
+  # 0-5. 0 = debug, 5 = unknown.
+  if ENV["NAKAMURA_TEST_LOG_LEVEL"] != nil
+    @log.level = ENV["NAKAMURA_TEST_LOG_LEVEL"].to_i
+  else
+    @log.level = Logger::INFO
+  end
+
 end

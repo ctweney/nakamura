@@ -17,9 +17,9 @@ Scenario: I want to verify that new content is private to me
   When I create a new file
   Then I check the properties of the new file
   Then I log out
-  Then I should not be able to view file
+  Then User cannot read file
   Given I have logged in as "bob"
-  Then I should not be able to view file
+  Then User cannot read file
 
 Scenario: I want to create a piece of pooled content
   Given I have logged in as "carol"

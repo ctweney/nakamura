@@ -73,11 +73,6 @@ Then /^Anonymous user cannot post content$/ do
   raise "Anonymous user should not be able to post content" unless @httpResponse.code.to_i == 405
 end
 
-Then /^I should not be able to view file$/ do
-  filebodyhttpresponse = @s.execute_get(@fileurl)
-  raise "Other user should not have access to content!" unless filebodyhttpresponse.code.to_i == 404
-end
-
 Then /^I create an alternative stream of a file$/ do
   altstreampost = @fm.upload_pooled_file("file1", "page1 large contents", "text/plain", "#{@poolid}.page1-large")
   raise "Alternative stream of file could not be created" unless altstreampost.code.to_i == 200
