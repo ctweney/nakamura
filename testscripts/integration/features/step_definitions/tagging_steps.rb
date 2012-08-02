@@ -68,3 +68,10 @@ Then /^I delete a tag from the file$/ do
   @log.info(json)
   raise "Deleted Tag should not appear in file data" if json["sakai:tags"].include?("foo" + @m)
 end
+
+Then /^I put the file in the Veterinary directory$/ do
+  tagpath = "/tags/directory/Veterinary" + @m
+  tagpost = @s.execute_post(@fileurl, ":operation" => "tag", "key" => tagpath)
+  raise "Directory tag could not be applied to file" unless tagpost.code.to_i == 200
+
+end
