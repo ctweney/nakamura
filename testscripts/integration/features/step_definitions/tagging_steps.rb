@@ -1,3 +1,18 @@
+Then /^Make a bogus tag request$/ do
+  tagpost = @s.execute_post(@fileurl, ":operation" => "tag")
+  raise "Tag op without 'key' should fail" unless tagpost.code.to_i == 400
+end
+
+Then /^Make a bogus tag delete request$/ do
+  tagpost = @s.execute_post(@fileurl, ":operation" => "deletetag")
+  raise "Delete Tag op without 'key' should fail" unless tagpost.code.to_i == 400
+
+  tagpost = @s.execute_post(@fileurl, ":operation" => "deletetag", "key" => "nonexistent" + @m)
+  raise "Delete Tag with nonexistent tag key should fail" unless tagpost.code.to_i == 404
+
+  tagpost = @s.execute_post(@fileurl, ":operation" => "deletetag", "key" => @poolid)
+  raise "Passing DeleteTagOperation a key that is not a tag should fail" unless tagpost.code.to_i == 400
+end
 
 Then /^I tag the file with a single tag$/ do
   tagpath = "/tags/foo" + @m
@@ -41,4 +56,15 @@ Then /^I tag the file with multiple tags$/ do
   raise "First Tag does not appear in file data" unless json["sakai:tags"].include?("first" + @m)
   raise "Second Tag does not appear in file data" unless json["sakai:tags"].include?("second" + @m)
 
+end
+
+Then /^I delete a tag from the file$/ do
+  tagpath = "/tags/foo" + @m
+  tagpost = @s.execute_post(@fileurl, ":operation" => "deletetag", "key" => tagpath)
+  raise "Delete tag operation failed" unless tagpost.code.to_i == 200
+
+  fileget = @s.execute_get(@fileinfinityurl)
+  json = JSON.parse(fileget.body)
+  @log.info(json)
+  raise "Deleted Tag should not appear in file data" if json["sakai:tags"].include?("foo" + @m)
 end
