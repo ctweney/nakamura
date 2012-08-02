@@ -65,7 +65,6 @@ Then /^I delete a tag from the file$/ do
 
   fileget = @s.execute_get(@fileinfinityurl)
   json = JSON.parse(fileget.body)
-  @log.info(json)
   raise "Deleted Tag should not appear in file data" if json["sakai:tags"].include?("foo" + @m)
 end
 
@@ -74,4 +73,13 @@ Then /^I put the file in the Veterinary directory$/ do
   tagpost = @s.execute_post(@fileurl, ":operation" => "tag", "key" => tagpath)
   raise "Directory tag could not be applied to file" unless tagpost.code.to_i == 200
 
+  wait_for_indexer()
+
+  directoryget = @s.execute_get(@s.url_for("/tags/directory.tagged.tidy.json"))
+  raise "Could not get directory.tagged.json feed" unless directoryget.code.to_i == 200
+  json = JSON.parse(directoryget.body)
+  @log.info(directoryget.body)
+  listing = json["Veterinary" + @m]
+  raise "Veterinary#{@m} does not appear in directory" unless listing != nil
+  raise "Content item does not appear in Veterinary#{@m} listing" unless listing["content"]["sakai:tags"].include?("directory/Veterinary" + @m)
 end
