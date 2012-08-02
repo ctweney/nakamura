@@ -47,7 +47,7 @@ Then /^"([^"]*)" has read only privileges$/ do |user|
   aclget = @s.execute_get(@s.url_for("/p/#{@poolid}.acl.json"))
   @log.debug(aclget.body)
   json = JSON.parse(aclget.body)
-  raise "#{username}'s permissions are incorrect" unless json[username]["granted"][0] == "Read" && json[username]["granted"].length == 1
+  raise "#{username}'s permissions are incorrect" unless json[username]["granted"].include?("Read") && json[username]["granted"].length == 1
 end
 
 Then /^"([^"]*)" has read and write privileges$/ do |user|
@@ -55,7 +55,7 @@ Then /^"([^"]*)" has read and write privileges$/ do |user|
   aclget = @s.execute_get(@s.url_for("/p/#{@poolid}.acl.json"))
   @log.debug(aclget.body)
   json = JSON.parse(aclget.body)
-  raise "#{username}'s permissions are incorrect" unless json[username]["granted"][0] == "Read" && json[username]["granted"][1] == "Write"
+  raise "#{username}'s permissions are incorrect" unless json[username]["granted"].include?("Read") && json[username]["granted"].include?("Write")
 end
 
 Then /^"([^"]*)" has read write and delete privileges$/ do |user|
@@ -63,7 +63,7 @@ Then /^"([^"]*)" has read write and delete privileges$/ do |user|
   aclget = @s.execute_get(@s.url_for("/p/#{@poolid}.acl.json"))
   @log.debug(aclget.body)
   json = JSON.parse(aclget.body)
-  raise "#{username}'s permissions are incorrect" unless json[username]["granted"][-1] == "All"
+  raise "#{username}'s permissions are incorrect" unless json[username]["granted"].include?("All")
 end
 
 Then /^User can read file$/ do
@@ -92,7 +92,8 @@ end
 
 Then /^User can delete the file$/ do
   delete = @s.execute_post(@fileurl, ":operation" => "delete")
-  raise "User should not be able to delete file" unless delete.code.to_i == 200
+  @log.info(delete.body)
+  raise "User should be able to delete file" unless delete.code.to_i == 200
 end
 
 Then /^User cannot delete the file$/ do
