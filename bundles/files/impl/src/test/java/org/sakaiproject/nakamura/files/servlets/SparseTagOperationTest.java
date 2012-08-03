@@ -130,15 +130,6 @@ public class SparseTagOperationTest {
  }
 
   @Test
-  public void testAnonRequest() throws Exception {
-    Resource resource = mock(Resource.class);
-    when(request.getResource()).thenReturn(resource);
-    when(request.getRemoteUser()).thenReturn(UserConstants.ANON_USERID);
-    operation.doRun(request, response, null, null, "/blah/blah");
-    assertEquals(403, response.getStatusCode());
-  }
-
-  @Test
   public void testMissingResource() throws Exception {
     // This shouldn't really happen, but hey!
     Resource resource = mock(Resource.class);

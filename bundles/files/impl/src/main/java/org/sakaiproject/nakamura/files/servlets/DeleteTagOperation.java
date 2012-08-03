@@ -97,15 +97,6 @@ public class DeleteTagOperation extends AbstractSparsePostOperation {
 
     Session session = StorageClientUtils.adaptToSession(request.getResourceResolver().adaptTo(javax.jcr.Session.class));
 
-    // Check if the user has the required minimum privilege.
-    String user = request.getRemoteUser();
-    if (UserConstants.ANON_USERID.equals(user)) {
-      LOGGER.warn ("Anonymous user denied ability to delete tag.");
-      response.setStatus(HttpServletResponse.SC_FORBIDDEN,
-          "Anonymous users can't delete tags.");
-      return;
-    }
-
     // Check if the uuid is in the request.
     String key = request.getParameter("key");
     if (StringUtils.isBlank(key)) {

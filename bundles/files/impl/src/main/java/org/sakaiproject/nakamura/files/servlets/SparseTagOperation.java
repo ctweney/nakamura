@@ -223,15 +223,6 @@ public class SparseTagOperation extends AbstractSparsePostOperation {
     Session session = StorageClientUtils.adaptToSession(request.getResourceResolver()
         .adaptTo(javax.jcr.Session.class));
 
-    // Check if the user has the required minimum privilege.
-    String user = request.getRemoteUser();
-    if (UserConstants.ANON_USERID.equals(user)) {
-      LOGGER.warn("anonymous user attempted to tag an item");
-      response.setStatus(HttpServletResponse.SC_FORBIDDEN,
-          "Anonymous users can't tag things.");
-      return;
-    }
-
     Resource resource = request.getResource();
     Content content = resource.adaptTo(Content.class);
     ResourceResolver resourceResolver = request.getResourceResolver();
@@ -263,7 +254,7 @@ public class SparseTagOperation extends AbstractSparsePostOperation {
 
     updateAuthorizable(session, content, tagResources, addedTags);
 
-    updateCounts(request, session, user, content, addedTags);
+    updateCounts(request, session, request.getRemoteUser(), content, addedTags);
   }
 
   /**

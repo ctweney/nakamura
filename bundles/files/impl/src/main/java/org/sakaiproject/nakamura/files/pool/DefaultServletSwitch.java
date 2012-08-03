@@ -49,7 +49,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
 @SlingServlet(methods = { "GET" }, resourceTypes = { "sakai/pooled-content" })
-@ServiceDocumentation(name = "CanModifyContentPoolServlet documentation", okForVersion = "1.2",
+@ServiceDocumentation(name = "DefeaultServletSwitch documentation", okForVersion = "1.2",
   shortDescription = "Delegates to another servlet",
   description = "Delegates to another servlet",
   bindings = @ServiceBinding(type = BindingType.TYPE, bindings = "sakai/pooled-content",

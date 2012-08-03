@@ -223,13 +223,6 @@ public class CreateContentPoolServlet extends SlingAllMethodsServlet {
       throw new ServletException(e.getMessage(), e);
     }
 
-    // Anonymous users cannot upload files.
-    if (UserConstants.ANON_USERID.equals(userId)) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN,
-          "Anonymous users cannot upload files to the pool.");
-      return;
-    }
-
     Session adminSession = null;
     try {
       // Grab an admin session so we can create files in the pool space.
